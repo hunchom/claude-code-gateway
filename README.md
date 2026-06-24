@@ -84,7 +84,7 @@ The cached answer is rechecked every `recheck_hours` (default 6) and forcibly re
 
 ### Accuracy
 
-Local counting uses `ai-tokenizer`, which reproduces the model's BPE encoding and adds per-message/-tool structural overhead. The tokenizer is selected **per request** from the request's `model` field, matched against the installed `ai-tokenizer` model table — tolerant of vendor/region prefixes (`us.anthropic.…`), date stamps (`…-20251001`), and Bedrock version suffixes (`…-v1:0`) — and falls back to `tokenizer_model` when the model can't be resolved. It is an excellent estimate for context-window management and auto-compaction triggers, but is not guaranteed to be byte-identical to Anthropic's server-side count. Non-text blocks (images, PDFs) are estimated with the configurable `image_tokens` / `pdf_tokens` flat rates. When the upstream supports `count_tokens`, that exact count is used instead.
+Local counting uses `ai-tokenizer`, which reproduces the model's BPE encoding and adds per-message/-tool structural overhead. The tokenizer is selected **per request** from the request's `model` field, matched against the installed `ai-tokenizer` model table — tolerant of vendor/region prefixes (`us.anthropic.…`), date stamps (`…-20251001`), and Bedrock version suffixes (`…-v1:0`) — and falls back to `tokenizer_model` when the model can't be resolved. It is an excellent estimate for context-window management and auto-compaction triggers, but is not guaranteed to be byte-identical to Anthropic's server-side count. Images are estimated from their decoded dimensions (`width × height / 750`, Anthropic's documented approximation), falling back to the `image_tokens` flat rate when the dimensions can't be read; PDFs use the `pdf_tokens` flat rate. When the upstream supports `count_tokens`, that exact count is used instead.
 
 ## Configuration
 
@@ -101,7 +101,7 @@ Resolved in increasing precedence: **defaults → YAML file (`--config`) → `CC
 | `count_tokens` | `CCGW_COUNT_TOKENS` | `auto` | `auto` \| `local` \| `passthrough` |
 | `recheck_hours` | `CCGW_RECHECK_HOURS` | `6` | Capability recheck cadence |
 | `tokenizer_pool` | `CCGW_TOKENIZER_POOL` | `4` | Node worker count |
-| `image_tokens` | `CCGW_IMAGE_TOKENS` | `1600` | Flat estimate per image block |
+| `image_tokens` | `CCGW_IMAGE_TOKENS` | `1600` | Fallback per-image estimate when dimensions can't be decoded |
 | `pdf_tokens` | `CCGW_PDF_TOKENS` | `3000` | Flat estimate per PDF block |
 
 See [`config.example.yaml`](./config.example.yaml).

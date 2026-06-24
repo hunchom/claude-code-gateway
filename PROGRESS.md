@@ -65,8 +65,8 @@ A robust wrapper around Claude Code that:
 - [x] **Live `doctor` probe** — `doctor [--model]` sends a real count_tokens
       request upstream and classifies it via the shared `Classify` (read-only,
       no cache mutation). Auth from `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN`.
-- [ ] **Image token accuracy** — estimate from decoded image dimensions
-      (`(w*h)/750`, capped) instead of a flat rate.
+- [x] **Image token accuracy** — images estimated via width*height/750 from
+      decoded dimensions (png/jpeg/gif); flat `image_tokens` as fallback. Tested.
 - [ ] **Release engineering** — GoReleaser config, cross-compiled binaries,
       `v0.1.0` tag + GitHub release, CI badge in README.
 - [ ] **Service units** — `launchd` plist + `systemd` unit examples for `ccgate run`.

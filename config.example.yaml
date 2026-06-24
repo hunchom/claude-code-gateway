@@ -32,6 +32,6 @@ recheck_hours: 6
 
 # --- Local tokenizer tuning -------------------------------------------------
 tokenizer_pool: 4      # number of parallel Node worker processes
-image_tokens: 1600     # flat token estimate per image block
+image_tokens: 1600     # fallback per-image estimate (used when image dimensions can't be decoded)
 pdf_tokens: 3000       # flat token estimate per PDF document block
 # node_bin: node       # override the node executable if not on PATH

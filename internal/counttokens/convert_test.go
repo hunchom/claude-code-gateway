@@ -1,7 +1,11 @@
 package counttokens
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
+	"image"
+	"image/png"
 	"testing"
 )
 
@@ -71,6 +75,37 @@ func TestConvertBlocks(t *testing.T) {
 	}
 	if parts[2].Type != "tool-call" || parts[2].ToolName != "calc" {
 		t.Errorf("tool-call part = %+v", parts[2])
+	}
+}
+
+func TestImageTokensFromDimensions(t *testing.T) {
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, image.NewRGBA(image.Rect(0, 0, 30, 30))); err != nil {
+		t.Fatal(err)
+	}
+	data := base64.StdEncoding.EncodeToString(buf.Bytes())
+	content := `[{"type":"image","source":{"type":"base64","media_type":"image/png","data":"` + data + `"}}]`
+	req := &anthropicCountRequest{Messages: []anthropicMessage{{Role: "user", Content: json.RawMessage(content)}}}
+	out, err := convertToSDK(req, testCfg())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := (30*30 + 749) / 750 // dimension-based estimate, not the flat fallback
+	if out.ExtraTokens != want {
+		t.Errorf("image extra tokens = %d, want %d (width*height/750)", out.ExtraTokens, want)
+	}
+}
+
+func TestImageTokensFallback(t *testing.T) {
+	// Non-decodable data falls back to the configured flat estimate.
+	content := `[{"type":"image","source":{"type":"base64","media_type":"image/png","data":"AAAA"}}]`
+	req := &anthropicCountRequest{Messages: []anthropicMessage{{Role: "user", Content: json.RawMessage(content)}}}
+	out, err := convertToSDK(req, testCfg())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.ExtraTokens != testCfg().ImageTok {
+		t.Errorf("fallback image tokens = %d, want %d", out.ExtraTokens, testCfg().ImageTok)
 	}
 }
 

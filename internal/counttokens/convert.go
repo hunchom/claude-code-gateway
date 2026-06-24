@@ -2,8 +2,13 @@ package counttokens
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
+	_ "image/gif"  // register decoders for image.DecodeConfig
+	_ "image/jpeg" // register decoders for image.DecodeConfig
+	_ "image/png"  // register decoders for image.DecodeConfig
 )
 
 // ===========================================================================
@@ -150,7 +155,7 @@ func normalizeContent(raw json.RawMessage, cfg *CountConfig) ([]sdkPart, int, er
 				}
 				parts = append(parts, sdkPart{Type: "tool-result", Output: txt})
 			case "image":
-				extra += cfg.ImageTok
+				extra += imageTokens(b.Source, cfg)
 			case "document":
 				if b.Source != nil && b.Source.MediaType == "application/pdf" {
 					extra += cfg.PDFTok
@@ -168,6 +173,25 @@ func normalizeContent(raw json.RawMessage, cfg *CountConfig) ([]sdkPart, int, er
 		return parts, extra, nil
 	}
 	return []sdkPart{{Type: "text", Text: string(raw)}}, 0, nil
+}
+
+// imageTokens estimates tokens for an image block. With decodable base64 image
+// data it uses Anthropic's documented approximation, width*height/750; otherwise
+// (URL sources, unknown formats, decode errors) it falls back to the configured
+// flat estimate.
+func imageTokens(src *blockSource, cfg *CountConfig) int {
+	if src == nil || src.Data == "" {
+		return cfg.ImageTok
+	}
+	raw, err := base64.StdEncoding.DecodeString(src.Data)
+	if err != nil {
+		return cfg.ImageTok
+	}
+	ic, _, err := image.DecodeConfig(bytes.NewReader(raw))
+	if err != nil || ic.Width == 0 || ic.Height == 0 {
+		return cfg.ImageTok
+	}
+	return max((ic.Width*ic.Height+749)/750, 1)
 }
 
 func flattenToolResult(raw json.RawMessage) (string, error) {
