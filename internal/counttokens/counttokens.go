@@ -426,6 +426,26 @@ func (s *Service) Close() {
 	}
 }
 
+// LocalCount runs the local tokenizer for a raw Anthropic count_tokens body and
+// returns the token count. Unlike the request handler it returns an error
+// (rather than a heuristic) when the tokenizer is unavailable, so callers such
+// as calibration can require a real count.
+func (s *Service) LocalCount(body []byte) (int, error) {
+	var req anthropicCountRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		return 0, err
+	}
+	sdkReq, err := convertToSDK(&req, s.countConfig())
+	if err != nil {
+		return 0, err
+	}
+	pool, err := s.ensurePool()
+	if err != nil {
+		return 0, err
+	}
+	return pool.Count(context.Background(), sdkReq)
+}
+
 func writeErr(w http.ResponseWriter, status int, typ, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

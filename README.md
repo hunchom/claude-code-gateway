@@ -96,6 +96,8 @@ The cached answer is rechecked every `recheck_hours` (default 6) and forcibly re
 
 Local counting uses `ai-tokenizer`, which reproduces the model's BPE encoding and adds per-message/-tool structural overhead. The tokenizer is selected **per request** from the request's `model` field, matched against the installed `ai-tokenizer` model table — tolerant of vendor/region prefixes (`us.anthropic.…`), date stamps (`…-20251001`), and Bedrock version suffixes (`…-v1:0`) — and falls back to `tokenizer_model` when the model can't be resolved. It is an excellent estimate for context-window management and auto-compaction triggers, but is not guaranteed to be byte-identical to Anthropic's server-side count. Images are estimated from their decoded dimensions (`width × height / 750`, Anthropic's documented approximation), falling back to the `image_tokens` flat rate when the dimensions can't be read; PDFs use the `pdf_tokens` flat rate. When the upstream supports `count_tokens`, that exact count is used instead.
 
+To measure how close the local estimate is, run `ccgate calib --model <id>` against an upstream that implements `count_tokens` (e.g. `api.anthropic.com`); it reports per-sample and mean/max percentage error.
+
 ## Configuration
 
 Resolved in increasing precedence: **defaults → YAML file (`--config`) → `CCGW_*` environment variables**.
@@ -125,6 +127,7 @@ ccgate run                 Run the gateway in the foreground
 ccgate claude [args...]    Launch Claude Code through the gateway
 ccgate setup               Extract user-cert.pem / user-key.pem from a .p12
 ccgate doctor [--model M]  Diagnose config, cert, connectivity + live count_tokens probe
+ccgate calib --model M     Measure local token-count accuracy vs the upstream
 ccgate version             Print version
 ```
 

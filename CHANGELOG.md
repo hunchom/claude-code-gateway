@@ -18,6 +18,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   warning when it is expired or expiring within 14 days.
 - `/_ccgate/status` now reports the tokenizer model, Node availability, and
   local-tokenizer readiness.
+- `ccgate calib --model <id>` measures local token-count accuracy against an
+  upstream that implements count_tokens, reporting per-sample and mean/max error.
 
 ### Changed
 - The local count_tokens path now retries transient upstream failures (network

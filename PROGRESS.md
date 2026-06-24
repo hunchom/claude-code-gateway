@@ -105,9 +105,9 @@ A robust wrapper around Claude Code that:
 - [x] **Never hard-fail count_tokens** — when the local tokenizer is unavailable
       (no Node) or a count errors, return a conservative heuristic estimate
       (`X-Ccgate-Count: heuristic`) instead of an error, so a session never breaks.
-- [ ] **Calibration** — `ccgate calib --model M` compares local counts against an
-      upstream that implements count_tokens (e.g. api.anthropic.com) over sample
-      payloads and reports mean/max % error, so the operator can trust the estimate.
+- [x] **Calibration** — `ccgate calib --model M` compares local counts against an
+      upstream that implements count_tokens over 5 sample payloads and reports
+      per-sample + mean/max % error. Tested (upstreamCount + sample validity).
 - [x] **Richer status** — `/_ccgate/status` now reports tokenizer model, Node
       availability, and local-tokenizer readiness (not-started/ready/error).
 - [ ] **Container image** — still deferred; see note above.

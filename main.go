@@ -13,6 +13,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"embed"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -54,6 +55,8 @@ func main() {
 		cmdSetup(args)
 	case "doctor":
 		cmdDoctor(args)
+	case "calib":
+		cmdCalib(args)
 	case "version", "-v", "--version":
 		fmt.Println("ccgate", version)
 	case "help", "-h", "--help":
@@ -73,6 +76,7 @@ Usage:
   ccgate claude [args...]    Launch Claude Code through the gateway
   ccgate setup               Extract user-cert.pem / user-key.pem from a .p12
   ccgate doctor              Diagnose configuration and connectivity
+  ccgate calib --model M     Measure local token-count accuracy vs the upstream
   ccgate version             Print version
 
 Configuration is read from (lowest to highest precedence):
@@ -391,6 +395,127 @@ func humanTime(t time.Time) string {
 		return "never"
 	}
 	return t.Format(time.RFC3339)
+}
+
+// cmdCalib measures local tokenizer accuracy against an upstream that implements
+// count_tokens (for example api.anthropic.com) across representative payloads.
+func cmdCalib(args []string) {
+	fs := flag.NewFlagSet("calib", flag.ExitOnError)
+	var configPath, model string
+	fs.StringVar(&configPath, "config", config.DefaultConfigPath(), "config file path")
+	fs.StringVar(&model, "model", "", "model id to send upstream (default: config model)")
+	_ = fs.Parse(args)
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		fatal("config: %v", err)
+	}
+	if err := cfg.Validate(); err != nil {
+		fatal("config: %v", err)
+	}
+	if model == "" {
+		model = cfg.Model
+	}
+	if model == "" {
+		fatal("a model is required: pass --model or set CCGW_MODEL / model in config")
+	}
+
+	tlsCfg, err := buildTLS(cfg)
+	if err != nil {
+		fatal("tls: %v", err)
+	}
+	gw := buildGateway(cfg)
+	defer gw.CountTokens().Close()
+
+	fmt.Printf("Calibrating local tokenizer against %s (model %s)\n\n", cfg.Upstream, model)
+	fmt.Printf("%-14s %10s %10s %9s\n", "sample", "upstream", "local", "error")
+
+	var sumAbs, maxAbs float64
+	var n int
+	for _, smp := range builtinSamples(model) {
+		up, status, err := upstreamCount(cfg, tlsCfg, smp.body)
+		if err != nil {
+			if status == 404 || status == 405 || status == 501 {
+				fatal("upstream does not implement count_tokens (HTTP %d) — calibration needs an upstream that does (e.g. https://api.anthropic.com)", status)
+			}
+			fmt.Printf("%-14s   upstream error: %v\n", smp.name, err)
+			continue
+		}
+		local, err := gw.CountTokens().LocalCount(smp.body)
+		if err != nil {
+			fatal("local count failed (is node installed?): %v", err)
+		}
+		var pct float64
+		if up > 0 {
+			pct = 100 * float64(local-up) / float64(up)
+		}
+		fmt.Printf("%-14s %10d %10d %+8.1f%%\n", smp.name, up, local, pct)
+		abs := pct
+		if abs < 0 {
+			abs = -abs
+		}
+		sumAbs += abs
+		maxAbs = max(maxAbs, abs)
+		n++
+	}
+	if n > 0 {
+		fmt.Printf("\nmean abs error %.1f%%, max abs error %.1f%% over %d samples\n", sumAbs/float64(n), maxAbs, n)
+	}
+}
+
+type calibSample struct {
+	name string
+	body []byte
+}
+
+func builtinSamples(model string) []calibSample {
+	mk := func(name, inner string) calibSample {
+		return calibSample{name, fmt.Appendf(nil, `{"model":%q,%s}`, model, inner)}
+	}
+	return []calibSample{
+		mk("short", `"messages":[{"role":"user","content":"Hello, how are you today?"}]`),
+		mk("paragraph", `"messages":[{"role":"user","content":"Write a short summary of the history of computing, covering the abacus, mechanical calculators, vacuum tubes, transistors, integrated circuits, and modern multi-core processors, in a few sentences."}]`),
+		mk("multi-turn", `"messages":[{"role":"user","content":"What is the capital of France?"},{"role":"assistant","content":"The capital of France is Paris."},{"role":"user","content":"And the capital of Japan?"}]`),
+		mk("with-system", `"system":"You are a concise, helpful assistant.","messages":[{"role":"user","content":"Explain TLS mutual authentication briefly."}]`),
+		mk("with-tools", `"messages":[{"role":"user","content":"What is the weather in Paris?"}],"tools":[{"name":"get_weather","description":"Get the current weather for a city","input_schema":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}]`),
+	}
+}
+
+// upstreamCount sends a count_tokens body to the upstream and returns the parsed
+// input_tokens, the HTTP status, and any error.
+func upstreamCount(cfg *config.Config, tlsCfg *tls.Config, body []byte) (tokens int, status int, err error) {
+	u := strings.TrimRight(cfg.Upstream, "/") + "/v1/messages/count_tokens"
+	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(body))
+	if err != nil {
+		return 0, 0, err
+	}
+	req.Header.Set("content-type", "application/json")
+	req.Header.Set("anthropic-version", "2023-06-01")
+	if k := os.Getenv("ANTHROPIC_API_KEY"); k != "" {
+		req.Header.Set("x-api-key", k)
+	}
+	if t := os.Getenv("ANTHROPIC_AUTH_TOKEN"); t != "" {
+		req.Header.Set("authorization", "Bearer "+t)
+	}
+	client := &http.Client{
+		Transport: &http.Transport{TLSClientConfig: tlsCfg, ForceAttemptHTTP2: true},
+		Timeout:   30 * time.Second,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if resp.StatusCode != http.StatusOK {
+		return 0, resp.StatusCode, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+	var r struct {
+		InputTokens int `json:"input_tokens"`
+	}
+	if err := json.Unmarshal(b, &r); err != nil {
+		return 0, resp.StatusCode, err
+	}
+	return r.InputTokens, resp.StatusCode, nil
 }
 
 func fatal(format string, a ...any) {
