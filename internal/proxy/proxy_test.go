@@ -54,12 +54,14 @@ func TestGatewayHealthAndStatus(t *testing.T) {
 }
 
 func TestGatewayPassthrough(t *testing.T) {
-	var gotPath, gotMethod, gotBody, gotHeader string
+	var gotPath, gotMethod, gotBody, gotHeader, gotXFF, gotVia string
 	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath, gotMethod = r.URL.Path, r.Method
 		bb, _ := io.ReadAll(r.Body)
 		gotBody = string(bb)
 		gotHeader = r.Header.Get("X-Test")
+		gotXFF = r.Header.Get("X-Forwarded-For")
+		gotVia = r.Header.Get("Via")
 		w.Header().Set("X-Up", "1")
 		w.WriteHeader(http.StatusMultiStatus)
 		_, _ = w.Write([]byte("upstream-body"))
@@ -82,6 +84,10 @@ func TestGatewayPassthrough(t *testing.T) {
 	}
 	if resp.StatusCode != http.StatusMultiStatus || string(b) != "upstream-body" || resp.Header.Get("X-Up") != "1" {
 		t.Errorf("client got status=%d body=%q x-up=%q", resp.StatusCode, b, resp.Header.Get("X-Up"))
+	}
+	// Transparent/invisible: the proxy must not announce itself upstream.
+	if gotXFF != "" || gotVia != "" {
+		t.Errorf("proxy leaked identity headers upstream: X-Forwarded-For=%q Via=%q", gotXFF, gotVia)
 	}
 }
 

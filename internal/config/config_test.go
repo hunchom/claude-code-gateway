@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -42,6 +43,43 @@ func TestCountTimeout(t *testing.T) {
 	}
 	if c.CountTimeout != 12 {
 		t.Errorf("env count_timeout = %d, want 12", c.CountTimeout)
+	}
+}
+
+func TestLoadYAMLFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	yaml := `
+listen: 127.0.0.1:9999
+upstream: https://up.example
+tokenizer_model: anthropic/claude-haiku-4.5
+count_tokens: local
+recheck_hours: 12
+tokenizer_pool: 7
+count_timeout: 45
+model_map:
+  my-alias: anthropic/claude-sonnet-4.5
+`
+	if err := os.WriteFile(path, []byte(yaml), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	c, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Listen != "127.0.0.1:9999" || c.Upstream != "https://up.example" {
+		t.Errorf("listen=%q upstream=%q", c.Listen, c.Upstream)
+	}
+	if c.TokenizerModel != "anthropic/claude-haiku-4.5" || c.CountTokens != "local" {
+		t.Errorf("tokenizer_model=%q count_tokens=%q", c.TokenizerModel, c.CountTokens)
+	}
+	if c.RecheckHours != 12 || c.PoolSize != 7 || c.CountTimeout != 45 {
+		t.Errorf("recheck=%d pool=%d timeout=%d", c.RecheckHours, c.PoolSize, c.CountTimeout)
+	}
+	if c.ModelMap["my-alias"] != "anthropic/claude-sonnet-4.5" {
+		t.Errorf("model_map not parsed: %v", c.ModelMap)
+	}
+	if err := c.Validate(); err != nil {
+		t.Errorf("validate: %v", err)
 	}
 }
 
