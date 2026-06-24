@@ -1,5 +1,10 @@
 # claude-code-gateway (`ccgate`)
 
+[![CI](https://github.com/hunchom/claude-code-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/hunchom/claude-code-gateway/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/hunchom/claude-code-gateway?sort=semver)](https://github.com/hunchom/claude-code-gateway/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Go Reference](https://pkg.go.dev/badge/github.com/hunchom/claude-code-gateway.svg)](https://pkg.go.dev/github.com/hunchom/claude-code-gateway)
+
 A transparent gateway and launcher that lets [Claude Code](https://docs.anthropic.com/en/docs/claude-code) talk to **any Anthropic-compatible endpoint** — a self-hosted [LiteLLM](https://github.com/BerriAI/litellm) proxy, an Amazon Bedrock gateway, or `api.anthropic.com` — over **mutual TLS**, while transparently filling in the `count_tokens` endpoint when the upstream doesn't implement it.
 
 It is built to be **invisible** and **upgrade-proof**: every request is forwarded byte-for-byte, so new fields and behaviours introduced by future Claude Code releases pass straight through. The only request it ever inspects is `/v1/messages/count_tokens`.
@@ -33,6 +38,9 @@ Some gateways (notably LiteLLM in front of Bedrock) proxy `/v1/messages` but **d
 - **`ccgate claude …`** launches Claude Code with `ANTHROPIC_BASE_URL` already pointed at the gateway.
 
 ## Install
+
+Download a pre-built binary for your platform from the
+[Releases](https://github.com/hunchom/claude-code-gateway/releases) page, or build it yourself:
 
 ```sh
 go install github.com/hunchom/claude-code-gateway@latest   # installs as "claude-code-gateway"

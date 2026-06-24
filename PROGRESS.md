@@ -67,8 +67,9 @@ A robust wrapper around Claude Code that:
       no cache mutation). Auth from `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN`.
 - [x] **Image token accuracy** — images estimated via width*height/750 from
       decoded dimensions (png/jpeg/gif); flat `image_tokens` as fallback. Tested.
-- [ ] **Release engineering** — GoReleaser config, cross-compiled binaries,
-      `v0.1.0` tag + GitHub release, CI badge in README.
+- [x] **Release engineering** — `.goreleaser.yaml` (6 targets), `release` workflow
+      on tag push, CI/release/license/godoc badges in README, `v0.1.0` tagged.
+      Cross-compile validated for all targets.
 - [ ] **Service units** — `launchd` plist + `systemd` unit examples for `ccgate run`.
 - [ ] **Passthrough resilience** — short retry/backoff on transient upstream
       errors before failing a `count_tokens` forward.
