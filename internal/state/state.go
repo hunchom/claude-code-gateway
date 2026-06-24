@@ -40,7 +40,8 @@ func Load(dir string) State {
 	return s
 }
 
-// Save writes state to dir atomically (temp file + rename).
+// Save writes state to dir atomically (unique temp file + rename). The unique
+// temp name makes concurrent saves (e.g. simultaneous capability probes) safe.
 func Save(dir string, s State) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
@@ -49,9 +50,23 @@ func Save(dir string, s State) error {
 	if err != nil {
 		return err
 	}
-	tmp := file(dir) + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+	tmp, err := os.CreateTemp(dir, "state-*.json")
+	if err != nil {
 		return err
 	}
-	return os.Rename(tmp, file(dir))
+	tmpName := tmp.Name()
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		os.Remove(tmpName)
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		os.Remove(tmpName)
+		return err
+	}
+	if err := os.Rename(tmpName, file(dir)); err != nil {
+		os.Remove(tmpName)
+		return err
+	}
+	return nil
 }

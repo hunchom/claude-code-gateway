@@ -28,6 +28,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - count_tokens never hard-fails: when the local tokenizer is unavailable or a
   count errors, the gateway returns a heuristic estimate (`X-Ccgate-Count:
   heuristic`) instead of an error.
+- State writes use a unique temp file, making concurrent capability updates safe.
+  CI now runs the test suite under the race detector.
 
 ## [0.1.0] - 2026-06-24
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -130,6 +131,30 @@ func TestStatus(t *testing.T) {
 	if got.LocalTokenizer != "not-started" {
 		t.Errorf("local_tokenizer = %q, want not-started for a fresh service", got.LocalTokenizer)
 	}
+}
+
+// TestServiceConcurrentAccess hammers the service's shared state from many
+// goroutines; run under -race it guards the locking around decide/record/Status.
+func TestServiceConcurrentAccess(t *testing.T) {
+	s := &Service{opts: Options{Mode: config.CountAuto, RecheckHours: 6, StateDir: t.TempDir()}, upstream: "https://up"}
+	var wg sync.WaitGroup
+	for i := range 64 {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			switch i % 4 {
+			case 0:
+				_ = s.decide()
+			case 1:
+				s.record(state.Supported)
+			case 2:
+				_ = s.Status()
+			case 3:
+				s.ForceRecheck()
+			}
+		}(i)
+	}
+	wg.Wait()
 }
 
 func TestHeuristicCount(t *testing.T) {
