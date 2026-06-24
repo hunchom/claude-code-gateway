@@ -17,11 +17,11 @@ A robust wrapper around Claude Code that:
 7. Stays robust across Claude Code upgrades (don't break the LiteLLM connection).
 8. Published on a public GitHub profile.
 
-## Status: feature-complete (Wave 1–3 done) + v0.1.0 released
+## Status: feature-complete + v0.1.1 released (binaries + multi-arch Docker image)
 
-Every original requirement plus three enhancement waves are shipped and tested.
-The container image is intentionally deferred as optional (see decision below).
-Building, smoke-tested, published.
+Every original requirement plus three enhancement waves are shipped and tested,
+including the container image (now done). v0.1.1 fixes the v0.1.0 launcher
+arg-passthrough bug. Building, smoke-tested, published; GHCR image public.
 
 - `go build ./...` ✅  `go vet ./...` ✅  `gofmt -l` clean ✅  `go test ./...` ✅
 - Unit tests: config precedence/validation, state round-trip, counttokens
