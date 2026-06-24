@@ -25,7 +25,15 @@ func TestIsCountTokensPath(t *testing.T) {
 			t.Errorf("IsCountTokensPath(%q) = false, want true", p)
 		}
 	}
-	bad := []string{"/v1/messages", "/v1/messages/count", "/", "/count_tokens"}
+	// Other real Claude Code endpoints must pass through, not be intercepted.
+	bad := []string{
+		"/v1/messages",
+		"/v1/messages/count",
+		"/v1/messages/batches",
+		"/v1/messages/batches/msgbatch_123",
+		"/",
+		"/count_tokens",
+	}
 	for _, p := range bad {
 		if IsCountTokensPath(p) {
 			t.Errorf("IsCountTokensPath(%q) = true, want false", p)

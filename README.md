@@ -131,6 +131,23 @@ ccgate calib --model M     Measure local token-count accuracy vs the upstream
 ccgate version             Print version
 ```
 
+## Compatibility
+
+The proxy is transparent by design: only `/v1/messages/count_tokens` and the
+operator routes are inspected; everything else is forwarded unchanged, so new
+request and response shapes from future Claude Code releases pass straight
+through without code changes.
+
+Verified against Claude Code 2.1.187's actual request surface:
+
+- Endpoints used — `/v1/messages`, `/v1/messages/batches`,
+  `/v1/messages/count_tokens`. Only the last is intercepted; the rest pass through.
+- Honors `ANTHROPIC_BASE_URL` (set automatically by `ccgate claude`) and forwards
+  `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, and `ANTHROPIC_CUSTOM_HEADERS`.
+- Sends `anthropic-version: 2023-06-01`.
+- The client marks token counting `count_tokens_unreachable` on failure; the
+  gateway's heuristic fallback always returns a count, so that never triggers.
+
 ## Running as a service
 
 Example `systemd` and `launchd` units (with secrets kept out of version control —

@@ -30,6 +30,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   heuristic`) instead of an error.
 - State writes use a unique temp file, making concurrent capability updates safe.
   CI now runs the test suite under the race detector.
+- Documented compatibility verified against Claude Code 2.1.187's request surface
+  (endpoints, base-URL/auth env vars, version header), with a path regression test.
 
 ## [0.1.0] - 2026-06-24
 
