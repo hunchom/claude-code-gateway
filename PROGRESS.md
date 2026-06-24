@@ -19,8 +19,12 @@ A robust wrapper around Claude Code that:
 
 ## Status: MVP complete, building, smoke-tested, published
 
-- `go build ./...` ✅  `go vet ./...` ✅  `gofmt -l` clean ✅
+- `go build ./...` ✅  `go vet ./...` ✅  `gofmt -l` clean ✅  `go test ./...` ✅
+- Unit tests: config precedence/validation, state round-trip, counttokens
+  (convert + `decide()` state machine + path match), mtls (`.p12` round-trip
+  proving the PKCS#8 extraction is a valid keypair).
 - Local `count_tokens` smoke test ✅ → `{"input_tokens":19}` via the Node pool.
+- mtls: replaced deprecated `pkcs12.ToPEM` with `DecodeChain` + PKCS#8 PEM (correct output).
 - Published: https://github.com/hunchom/claude-code-gateway
 
 ## Architecture
@@ -49,9 +53,8 @@ A robust wrapper around Claude Code that:
 
 ## Next (prioritized — do the top item, then re-evaluate)
 
-- [ ] **Unit tests** — `convert.go` (text/array/tool_use/tool_result/image/pdf/system),
-      `config` precedence, `state` round-trip, `Service.decide()` state machine,
-      `IsCountTokensPath`. CI already runs `go test ./...`.
+- [x] **Unit tests** — config, state, counttokens (convert + decide + path), mtls
+      (p12 round-trip). CI runs `go test ./...`.
 - [ ] **Model→tokenizer-key mapping** — map the request's `model` to the right
       ai-tokenizer key (fall back to `tokenizer_model`) so mixed-model sessions
       count correctly. Beware Fable-class new tokenizers (~30% more tokens).

@@ -9,7 +9,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os"
-	"strings"
 
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
 )
@@ -33,32 +32,30 @@ func LoadClientCertificate(p12Path, password string) (tls.Certificate, error) {
 	return cert, nil
 }
 
-// ExtractPEM decodes the .p12 and writes the certificate and private key as PEM
-// files. The key file is created with 0600 permissions.
+// ExtractPEM decodes the .p12 and writes the leaf certificate (plus any
+// intermediates) and the private key as PEM files. The private key is encoded as
+// PKCS#8 ("PRIVATE KEY"); the key file is created with 0600 permissions.
 func ExtractPEM(p12Path, password, certOut, keyOut string) error {
 	data, err := os.ReadFile(p12Path)
 	if err != nil {
 		return fmt.Errorf("read p12: %w", err)
 	}
-	blocks, err := pkcs12.ToPEM(data, password)
+	key, leaf, cas, err := pkcs12.DecodeChain(data, password)
 	if err != nil {
 		return fmt.Errorf("decode p12 (wrong password?): %w", err)
 	}
-	var certPEM, keyPEM []byte
-	for _, b := range blocks {
-		switch {
-		case b.Type == "CERTIFICATE":
-			certPEM = append(certPEM, pem.EncodeToMemory(b)...)
-		case strings.Contains(b.Type, "PRIVATE KEY"):
-			keyPEM = append(keyPEM, pem.EncodeToMemory(b)...)
-		}
+
+	keyDER, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		return fmt.Errorf("marshal private key: %w", err)
 	}
-	if len(certPEM) == 0 {
-		return fmt.Errorf("p12 contained no certificate")
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyDER})
+
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: leaf.Raw})
+	for _, ca := range cas {
+		certPEM = append(certPEM, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: ca.Raw})...)
 	}
-	if len(keyPEM) == 0 {
-		return fmt.Errorf("p12 contained no private key")
-	}
+
 	if err := os.WriteFile(certOut, certPEM, 0o644); err != nil {
 		return fmt.Errorf("write cert: %w", err)
 	}
