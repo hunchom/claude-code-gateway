@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.hunchom.ccgate</string>
+
+  <!-- Runs a wrapper that loads the .p12 password from the Keychain, so no
+       secret is stored in this plist. Replace YOURUSER with your username. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/YOURUSER/.local/bin/ccgate-launchd.sh</string>
+  </array>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ProcessType</key>
+  <string>Background</string>
+
+  <key>StandardOutPath</key>
+  <string>/Users/YOURUSER/Library/Logs/ccgate.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/YOURUSER/Library/Logs/ccgate.log</string>
+</dict>
+</plist>

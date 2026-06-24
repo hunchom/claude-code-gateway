@@ -1,0 +1,35 @@
+[Unit]
+Description=ccgate — transparent gateway for Claude Code
+Documentation=https://github.com/hunchom/claude-code-gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Run as an isolated, ephemeral user with a private writable state dir at
+# /var/lib/ccgate (holds state.json and the ai-tokenizer sidecar).
+DynamicUser=yes
+StateDirectory=ccgate
+Environment=CCGW_CONFIG_DIR=/var/lib/ccgate
+Environment=HOME=/var/lib/ccgate
+
+# Secrets (CCGW_P12_PASSWORD) come from a root-only env file; the leading "-"
+# makes it optional so the unit still starts without mTLS configured.
+EnvironmentFile=-/etc/ccgate/ccgate.env
+
+ExecStart=/usr/local/bin/ccgate run --config /etc/ccgate/config.yaml
+Restart=on-failure
+RestartSec=2
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

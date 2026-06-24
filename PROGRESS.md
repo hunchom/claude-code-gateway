@@ -70,7 +70,9 @@ A robust wrapper around Claude Code that:
 - [x] **Release engineering** — `.goreleaser.yaml` (6 targets), `release` workflow
       on tag push, CI/release/license/godoc badges in README, `v0.1.0` tagged.
       Cross-compile validated for all targets.
-- [ ] **Service units** — `launchd` plist + `systemd` unit examples for `ccgate run`.
+- [x] **Service units** — hardened `systemd` unit (DynamicUser, StateDirectory,
+      root-only env file) + `launchd` agent (Keychain password wrapper) in
+      `deploy/`, with a deploy guide. plist + wrapper validated.
 - [ ] **Passthrough resilience** — short retry/backoff on transient upstream
       errors before failing a `count_tokens` forward.
 

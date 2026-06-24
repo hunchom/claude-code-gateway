@@ -124,6 +124,13 @@ ccgate doctor [--model M]  Diagnose config, cert, connectivity + live count_toke
 ccgate version             Print version
 ```
 
+## Running as a service
+
+Example `systemd` and `launchd` units (with secrets kept out of version control —
+Keychain on macOS, a root-only env file on Linux) are in [`deploy/`](./deploy).
+For an interactive session you usually don't need a service: `ccgate claude …`
+starts and tears down the gateway around Claude Code automatically.
+
 ## Observability
 
 The gateway serves two operator routes outside the Anthropic API namespace
