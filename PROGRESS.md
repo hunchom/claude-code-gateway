@@ -84,8 +84,9 @@ A robust wrapper around Claude Code that:
       `/_ccgate/status`, transparent passthrough (path/query/method/body/headers),
       and count_tokens supported→passthrough with capability learning. Every
       package now has tests. (missing→local needs Node; in the smoke test.)
-- [ ] **Repo polish for public** — `CHANGELOG.md` (Keep a Changelog), `SECURITY.md`
-      (reporting + the no-secrets posture), `CONTRIBUTING.md` (build/test/PR flow).
+- [x] **Repo polish for public** — `CHANGELOG.md` (Keep a Changelog), `SECURITY.md`
+      (private advisory reporting + no-secrets posture), `CONTRIBUTING.md`
+      (build/test/PR flow), linked from README.
 - [ ] **Container image** — Dockerfile (distroless/static) + wire into GoReleaser
       so tagged releases also publish an image. Node optional layer for local mode.
 - [ ] **Config polish** — expose count_tokens client timeout; add an optional

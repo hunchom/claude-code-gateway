@@ -148,6 +148,12 @@ curl -s http://127.0.0.1:8787/_ccgate/status   # mode, upstream, learned count_t
 - mTLS verification uses the system trust store plus the embedded/extra CA bundle; TLS 1.2 minimum.
 - The proxy adds no identifying headers — upstream sees what Claude Code sent.
 
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) for the
+build/test flow and guidelines, and [CHANGELOG.md](./CHANGELOG.md) for release
+history. For security issues, follow [SECURITY.md](./SECURITY.md).
+
 ## License
 
 MIT — see [LICENSE](./LICENSE).
