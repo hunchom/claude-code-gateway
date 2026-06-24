@@ -14,6 +14,7 @@ import (
 	"embed"
 	"flag"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -24,6 +25,7 @@ import (
 	"time"
 
 	"github.com/hunchom/claude-code-gateway/internal/config"
+	"github.com/hunchom/claude-code-gateway/internal/counttokens"
 	"github.com/hunchom/claude-code-gateway/internal/mtls"
 	"github.com/hunchom/claude-code-gateway/internal/proxy"
 	"github.com/hunchom/claude-code-gateway/internal/state"
@@ -249,7 +251,21 @@ func cmdSetup(args []string) {
 
 // cmdDoctor reports on configuration, certificate material, and connectivity.
 func cmdDoctor(args []string) {
-	cfg, _ := mustConfig(args, "doctor")
+	fs := flag.NewFlagSet("doctor", flag.ExitOnError)
+	var configPath, model string
+	fs.StringVar(&configPath, "config", config.DefaultConfigPath(), "config file path")
+	fs.StringVar(&model, "model", "", "model id for the live count_tokens probe (default: config model)")
+	_ = fs.Parse(args)
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		fatal("config: %v", err)
+	}
+	if err := cfg.Validate(); err != nil {
+		fatal("config: %v", err)
+	}
+	if model == "" {
+		model = cfg.Model
+	}
 	fmt.Printf("ccgate %s\n", version)
 	fmt.Printf("config dir:      %s\n", cfg.ConfigDir)
 	fmt.Printf("upstream:        %s\n", cfg.Upstream)
@@ -295,6 +311,47 @@ func cmdDoctor(args []string) {
 			fmt.Printf("upstream tls:    OK (%s)\n", host)
 		}
 	}
+
+	fmt.Print("upstream count_tokens: ")
+	switch {
+	case cfg.CountTokens == config.CountLocal:
+		fmt.Println("skipped (mode=local)")
+	case model == "":
+		fmt.Println("skipped (no model; pass --model or set CCGW_MODEL)")
+	default:
+		c, detail := liveProbe(cfg, tlsCfg, model)
+		fmt.Printf("%s %s\n", c, detail)
+	}
+}
+
+// liveProbe sends a minimal count_tokens request upstream and classifies the
+// response. It does not mutate cached state.
+func liveProbe(cfg *config.Config, tlsCfg *tls.Config, model string) (state.Capability, string) {
+	body := fmt.Appendf(nil, `{"model":%q,"messages":[{"role":"user","content":"ping"}]}`, model)
+	u := strings.TrimRight(cfg.Upstream, "/") + "/v1/messages/count_tokens"
+	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(body))
+	if err != nil {
+		return state.Unknown, "build request: " + err.Error()
+	}
+	req.Header.Set("content-type", "application/json")
+	req.Header.Set("anthropic-version", "2023-06-01")
+	if k := os.Getenv("ANTHROPIC_API_KEY"); k != "" {
+		req.Header.Set("x-api-key", k)
+	}
+	if t := os.Getenv("ANTHROPIC_AUTH_TOKEN"); t != "" {
+		req.Header.Set("authorization", "Bearer "+t)
+	}
+	client := &http.Client{
+		Transport: &http.Transport{TLSClientConfig: tlsCfg, ForceAttemptHTTP2: true},
+		Timeout:   15 * time.Second,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return state.Unknown, "request failed: " + err.Error()
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	return counttokens.Classify(resp.StatusCode, b), fmt.Sprintf("(HTTP %d)", resp.StatusCode)
 }
 
 func promptPassword(prompt string) string {

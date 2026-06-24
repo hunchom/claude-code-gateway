@@ -240,16 +240,31 @@ func (s *Service) probeUpstream(r *http.Request, body []byte) (decided, supporte
 	}
 	defer resp.Body.Close()
 	b, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	switch {
-	case resp.StatusCode == http.StatusOK && bytes.Contains(b, []byte("input_tokens")):
+	switch Classify(resp.StatusCode, b) {
+	case state.Supported:
 		return true, true, resp.StatusCode, b, resp.Header
-	case resp.StatusCode == http.StatusNotFound,
-		resp.StatusCode == http.StatusMethodNotAllowed,
-		resp.StatusCode == http.StatusNotImplemented,
-		bytes.Contains(b, []byte("not_found_error")):
+	case state.Unsupported:
 		return true, false, resp.StatusCode, b, resp.Header
 	default:
 		return false, false, resp.StatusCode, b, resp.Header
+	}
+}
+
+// Classify maps an upstream count_tokens response to a capability: Supported
+// (200 carrying input_tokens), Unsupported (404/405/501 or a not_found_error
+// body), or Unknown for anything ambiguous (auth failures, 5xx, odd bodies).
+// Shared by the request-path probe and the doctor command.
+func Classify(status int, body []byte) state.Capability {
+	switch {
+	case status == http.StatusOK && bytes.Contains(body, []byte("input_tokens")):
+		return state.Supported
+	case status == http.StatusNotFound,
+		status == http.StatusMethodNotAllowed,
+		status == http.StatusNotImplemented,
+		bytes.Contains(body, []byte("not_found_error")):
+		return state.Unsupported
+	default:
+		return state.Unknown
 	}
 }
 

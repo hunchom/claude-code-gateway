@@ -62,8 +62,9 @@ A robust wrapper around Claude Code that:
       `tokenizer_model`. Smoke-tested across 6 id shapes.
 - [x] **`/healthz` + `/_ccgate/status`** — liveness + JSON status (mode, upstream,
       learned capability, checked_at). Outside the Anthropic namespace; tested.
-- [ ] **Live `doctor` probe** — actually call upstream `count_tokens` and report
-      supported/unsupported.
+- [x] **Live `doctor` probe** — `doctor [--model]` sends a real count_tokens
+      request upstream and classifies it via the shared `Classify` (read-only,
+      no cache mutation). Auth from `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN`.
 - [ ] **Image token accuracy** — estimate from decoded image dimensions
       (`(w*h)/750`, capped) instead of a flat rate.
 - [ ] **Release engineering** — GoReleaser config, cross-compiled binaries,

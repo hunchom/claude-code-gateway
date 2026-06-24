@@ -112,7 +112,7 @@ See [`config.example.yaml`](./config.example.yaml).
 ccgate run                 Run the gateway in the foreground
 ccgate claude [args...]    Launch Claude Code through the gateway
 ccgate setup               Extract user-cert.pem / user-key.pem from a .p12
-ccgate doctor              Diagnose configuration, certificate, and connectivity
+ccgate doctor [--model M]  Diagnose config, cert, connectivity + live count_tokens probe
 ccgate version             Print version
 ```
 

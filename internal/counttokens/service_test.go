@@ -44,6 +44,28 @@ func TestDecide(t *testing.T) {
 	}
 }
 
+func TestClassify(t *testing.T) {
+	cases := []struct {
+		status int
+		body   string
+		want   state.Capability
+	}{
+		{200, `{"input_tokens":5}`, state.Supported},
+		{404, `not found`, state.Unsupported},
+		{405, ``, state.Unsupported},
+		{501, ``, state.Unsupported},
+		{200, `{"error":{"type":"not_found_error"}}`, state.Unsupported},
+		{200, `{"foo":1}`, state.Unknown},
+		{401, `auth required`, state.Unknown},
+		{503, `upstream down`, state.Unknown},
+	}
+	for _, c := range cases {
+		if got := Classify(c.status, []byte(c.body)); got != c.want {
+			t.Errorf("Classify(%d, %q) = %v, want %v", c.status, c.body, got, c.want)
+		}
+	}
+}
+
 func TestStatus(t *testing.T) {
 	s := &Service{opts: Options{Mode: config.CountAuto}, upstream: "https://up"}
 	s.st = state.State{Endpoint: "https://up", CountTokens: state.Unsupported, CheckedAt: time.Now()}
