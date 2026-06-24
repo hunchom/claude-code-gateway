@@ -163,6 +163,23 @@ func TestConvertRoleNormalization(t *testing.T) {
 	}
 }
 
+// FuzzConvertToSDK feeds arbitrary (but JSON-parseable) count_tokens request
+// bodies through the conversion to ensure it never panics on malformed input.
+func FuzzConvertToSDK(f *testing.F) {
+	f.Add([]byte(`{"model":"claude-x","messages":[{"role":"user","content":"hi"}]}`))
+	f.Add([]byte(`{"system":"s","messages":[{"role":"user","content":[{"type":"text","text":"x"},{"type":"image","source":{"type":"base64","media_type":"image/png","data":"AAAA"}},{"type":"tool_use","name":"t","input":{"a":1}}]}]}`))
+	f.Add([]byte(`{"messages":[{"role":"weird","content":[{"type":"tool_result","content":[{"type":"text","text":"r"}]}]}]}`))
+	f.Add([]byte(`{}`))
+	f.Fuzz(func(t *testing.T, data []byte) {
+		var req anthropicCountRequest
+		if err := json.Unmarshal(data, &req); err != nil {
+			return // only exercise inputs that parse as the request shape
+		}
+		// Must not panic regardless of content.
+		_, _ = convertToSDK(&req, testCfg())
+	})
+}
+
 func TestFlattenToolResult(t *testing.T) {
 	cases := map[string]json.RawMessage{
 		"plain":  json.RawMessage(`"hi"`),

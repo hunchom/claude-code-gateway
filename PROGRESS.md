@@ -96,8 +96,9 @@ A robust wrapper around Claude Code that:
       ai-tokenizer-key for custom LiteLLM aliases. Tested.
 - [x] **setup/doctor cert detail** — `doctor` and `setup` print the client cert
       subject + NotAfter, warning when expired or expiring within 14 days.
-- [ ] **Fuzz tests** — `FuzzConvert` (count_tokens request → convert) and
-      `FuzzNormalize` (model id normalizer) to harden against malformed input.
+- [x] **Fuzz tests** — `FuzzConvertToSDK` hardens the count_tokens conversion
+      (2.9M execs, zero panics). The model-id normalizer lives in the JS sidecar
+      (not Go), so it isn't Go-fuzzable here.
 
 ## How to build / test
 
