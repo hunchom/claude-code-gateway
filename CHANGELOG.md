@@ -39,6 +39,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Documented compatibility verified against Claude Code 2.1.187's request surface
   (endpoints, base-URL/auth env vars, version header), with a path regression test.
 - Streaming-passthrough test proving responses are flushed per write (no buffering).
+- End-to-end mutual-TLS test proving ccgate authenticates to a client-certificate-
+  requiring upstream using the configured cert (self-contained; no external tools).
 - Dependabot config (Go modules + GitHub Actions, weekly) to keep dependencies current.
 
 ## [0.1.0] - 2026-06-24
