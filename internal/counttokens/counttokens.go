@@ -94,6 +94,30 @@ func (s *Service) Capability() state.Capability {
 	return s.st.CountTokens
 }
 
+// Status is a snapshot of the count_tokens service for the operator status route.
+type Status struct {
+	Mode                string `json:"mode"`
+	Upstream            string `json:"upstream"`
+	CountTokensUpstream string `json:"count_tokens_upstream"`
+	CheckedAt           string `json:"checked_at,omitempty"`
+}
+
+// Status returns the current service state for /_ccgate/status.
+func (s *Service) Status() Status {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	checked := ""
+	if !s.st.CheckedAt.IsZero() {
+		checked = s.st.CheckedAt.UTC().Format(time.RFC3339)
+	}
+	return Status{
+		Mode:                s.opts.Mode,
+		Upstream:            s.upstream,
+		CountTokensUpstream: string(s.st.CountTokens),
+		CheckedAt:           checked,
+	}
+}
+
 // ForceRecheck marks the cached capability stale so the next request re-probes
 // upstream. Called on launch and on the periodic timer.
 func (s *Service) ForceRecheck() {

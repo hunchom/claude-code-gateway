@@ -116,6 +116,16 @@ ccgate doctor              Diagnose configuration, certificate, and connectivity
 ccgate version             Print version
 ```
 
+## Observability
+
+The gateway serves two operator routes outside the Anthropic API namespace
+(Claude Code never calls them):
+
+```sh
+curl -s http://127.0.0.1:8787/healthz          # {"status":"ok"}
+curl -s http://127.0.0.1:8787/_ccgate/status   # mode, upstream, learned count_tokens capability, last check
+```
+
 ## Security
 
 - Secrets (`.p12` password) are accepted **only** from the environment and are never written to disk or logs.

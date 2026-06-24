@@ -8,6 +8,7 @@ package proxy
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -79,9 +80,21 @@ func New(cfg *config.Config, tlsCfg *tls.Config) (*Gateway, error) {
 	return &Gateway{cfg: cfg, rp: rp, ct: ct}, nil
 }
 
-// ServeHTTP routes count_tokens to the capability-aware service and everything
-// else through the transparent reverse proxy.
+// ServeHTTP routes operator endpoints and count_tokens locally, and forwards
+// everything else through the transparent reverse proxy. The operator routes
+// (/healthz, /_ccgate/status) are outside the Anthropic API namespace, so they
+// never collide with upstream paths and are invisible to Claude Code.
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.URL.Path {
+	case "/healthz":
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+		return
+	case "/_ccgate/status":
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(g.ct.Status())
+		return
+	}
 	if counttokens.IsCountTokensPath(r.URL.Path) {
 		g.ct.Handle(w, r)
 		return

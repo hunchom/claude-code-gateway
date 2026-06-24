@@ -43,3 +43,15 @@ func TestDecide(t *testing.T) {
 		t.Errorf("mode=passthrough: decide() = %v, want decidePassthrough", got)
 	}
 }
+
+func TestStatus(t *testing.T) {
+	s := &Service{opts: Options{Mode: config.CountAuto}, upstream: "https://up"}
+	s.st = state.State{Endpoint: "https://up", CountTokens: state.Unsupported, CheckedAt: time.Now()}
+	got := s.Status()
+	if got.Mode != config.CountAuto || got.Upstream != "https://up" || got.CountTokensUpstream != "unsupported" {
+		t.Errorf("status = %+v", got)
+	}
+	if got.CheckedAt == "" {
+		t.Error("expected checked_at to be set")
+	}
+}

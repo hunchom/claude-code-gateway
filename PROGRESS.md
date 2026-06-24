@@ -60,8 +60,8 @@ A robust wrapper around Claude Code that:
       against the installed ai-tokenizer table (tolerant of vendor/region
       prefixes, date stamps, bedrock `-v1:0` suffixes); falls back to
       `tokenizer_model`. Smoke-tested across 6 id shapes.
-- [ ] **`/healthz` + `/_ccgate/status`** — liveness and a JSON status (mode,
-      learned capability, checked_at) without touching Anthropic routes.
+- [x] **`/healthz` + `/_ccgate/status`** — liveness + JSON status (mode, upstream,
+      learned capability, checked_at). Outside the Anthropic namespace; tested.
 - [ ] **Live `doctor` probe** — actually call upstream `count_tokens` and report
       supported/unsupported.
 - [ ] **Image token accuracy** — estimate from decoded image dimensions
