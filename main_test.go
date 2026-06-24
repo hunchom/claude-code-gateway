@@ -4,11 +4,34 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 
 	"github.com/hunchom/claude-code-gateway/internal/config"
 	"github.com/hunchom/claude-code-gateway/internal/state"
 )
+
+func TestSplitClaudeArgs(t *testing.T) {
+	cases := []struct {
+		name string
+		in   []string
+		cfg  string
+		out  []string
+	}{
+		{"claude flag passes through", []string{"--resume"}, "", []string{"--resume"}},
+		{"claude flag with value", []string{"-p", "hello"}, "", []string{"-p", "hello"}},
+		{"leading config (space)", []string{"--config", "x.yaml", "--resume"}, "x.yaml", []string{"--resume"}},
+		{"leading config (equals)", []string{"--config=x.yaml", "chat"}, "x.yaml", []string{"chat"}},
+		{"terminator hands rest to claude", []string{"--", "--config", "notmine"}, "", []string{"--config", "notmine"}},
+		{"empty", nil, "", []string{}},
+	}
+	for _, c := range cases {
+		cfg, out := splitClaudeArgs(c.in)
+		if cfg != c.cfg || !slices.Equal(out, c.out) {
+			t.Errorf("%s: splitClaudeArgs(%v) = (%q, %v), want (%q, %v)", c.name, c.in, cfg, out, c.cfg, c.out)
+		}
+	}
+}
 
 func TestUpstreamCount(t *testing.T) {
 	ok := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

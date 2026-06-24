@@ -28,6 +28,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - count_tokens never hard-fails: when the local tokenizer is unavailable or a
   count errors, the gateway returns a heuristic estimate (`X-Ccgate-Count:
   heuristic`) instead of an error.
+
+### Fixed
+- `ccgate claude` now forwards all arguments to claude untouched; previously
+  claude's own flags (e.g. `--resume`, `-p`) were rejected by ccgate's argument
+  parser. A leading `--config <path>` is still honored, and `--` forces the
+  remainder to claude.
 - State writes use a unique temp file, making concurrent capability updates safe.
   CI now runs the test suite under the race detector.
 - Documented compatibility verified against Claude Code 2.1.187's request surface

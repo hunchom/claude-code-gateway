@@ -181,7 +181,17 @@ func cmdRun(args []string) {
 
 // cmdClaude binds the gateway, points Claude Code at it, and execs claude.
 func cmdClaude(args []string) {
-	cfg, rest := mustConfig(args, "claude")
+	configPath, claudeArgs := splitClaudeArgs(args)
+	if configPath == "" {
+		configPath = config.DefaultConfigPath()
+	}
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		fatal("config: %v", err)
+	}
+	if err := cfg.Validate(); err != nil {
+		fatal("config: %v", err)
+	}
 	gw := buildGateway(cfg)
 
 	ln, err := net.Listen("tcp", cfg.Listen)
@@ -205,7 +215,7 @@ func cmdClaude(args []string) {
 		fatal("claude not found on PATH: %v", err)
 	}
 	baseURL := "http://" + ln.Addr().String()
-	c := exec.Command(claudeBin, rest...)
+	c := exec.Command(claudeBin, claudeArgs...)
 	c.Env = append(os.Environ(), "ANTHROPIC_BASE_URL="+baseURL)
 	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
 	fmt.Fprintf(os.Stderr, "ccgate %s: ANTHROPIC_BASE_URL=%s -> %s\n", version, baseURL, cfg.Upstream)
@@ -222,6 +232,41 @@ func cmdClaude(args []string) {
 		}
 		fatal("claude: %v", runErr)
 	}
+}
+
+// splitClaudeArgs separates ccgate's own leading --config flag from the
+// arguments passed through to claude. Everything from the first non-ccgate
+// argument onward (or after a "--" terminator) is handed to claude untouched, so
+// claude's own flags (e.g. --resume, -p) are never parsed by ccgate.
+func splitClaudeArgs(args []string) (configPath string, claudeArgs []string) {
+	i := 0
+	for i < len(args) {
+		a := args[i]
+		if a == "--" {
+			i++
+			break
+		}
+		if a == "--config" || a == "-config" {
+			if i+1 >= len(args) {
+				fatal("--config requires a value")
+			}
+			configPath = args[i+1]
+			i += 2
+			continue
+		}
+		if v, ok := strings.CutPrefix(a, "--config="); ok {
+			configPath = v
+			i++
+			continue
+		}
+		if v, ok := strings.CutPrefix(a, "-config="); ok {
+			configPath = v
+			i++
+			continue
+		}
+		break
+	}
+	return configPath, args[i:]
 }
 
 // cmdSetup extracts PEM files from the configured (or flagged) .p12.
