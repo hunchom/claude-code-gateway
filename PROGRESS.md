@@ -100,6 +100,18 @@ A robust wrapper around Claude Code that:
       (2.9M execs, zero panics). The model-id normalizer lives in the JS sidecar
       (not Go), so it isn't Go-fuzzable here.
 
+### Wave 3 (robustness)
+
+- [x] **Never hard-fail count_tokens** — when the local tokenizer is unavailable
+      (no Node) or a count errors, return a conservative heuristic estimate
+      (`X-Ccgate-Count: heuristic`) instead of an error, so a session never breaks.
+- [ ] **Calibration** — `ccgate calib --model M` compares local counts against an
+      upstream that implements count_tokens (e.g. api.anthropic.com) over sample
+      payloads and reports mean/max % error, so the operator can trust the estimate.
+- [ ] **Richer status** — add tokenizer pool readiness + Node presence to
+      `/_ccgate/status` and `doctor`.
+- [ ] **Container image** — still deferred; see note above.
+
 ## How to build / test
 
 ```sh

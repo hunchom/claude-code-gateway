@@ -71,6 +71,7 @@ type Service struct {
 	poolOnce sync.Once
 	pool     *Pool
 	poolErr  error
+	warnOnce sync.Once
 }
 
 // NewService builds a Service. The local tokenizer pool is created lazily on the
@@ -325,25 +326,55 @@ func (s *Service) serveLocal(w http.ResponseWriter, body []byte) {
 		writeErr(w, http.StatusBadRequest, "invalid_request_error", "invalid JSON: "+err.Error())
 		return
 	}
-	pool, err := s.ensurePool()
-	if err != nil {
-		writeErr(w, http.StatusBadGateway, "api_error", "local tokenizer unavailable: "+err.Error())
-		return
-	}
 	sdkReq, err := convertToSDK(&req, s.countConfig())
 	if err != nil {
 		writeErr(w, http.StatusBadRequest, "invalid_request_error", err.Error())
 		return
 	}
-	total, err := pool.Count(context.Background(), sdkReq)
-	if err != nil {
-		writeErr(w, http.StatusBadGateway, "api_error", "token counting failed: "+err.Error())
+
+	// Never hard-fail count_tokens: if the local tokenizer can't run (e.g. Node
+	// is unavailable) or a count errors, return a conservative heuristic estimate
+	// so the Claude Code session keeps working instead of breaking.
+	pool, perr := s.ensurePool()
+	if perr != nil {
+		s.warnOnce.Do(func() {
+			log.Printf("count_tokens: local tokenizer unavailable (%v); using heuristic estimates", perr)
+		})
+		writeCount(w, heuristicCount(sdkReq), "heuristic")
 		return
 	}
+	total, cerr := pool.Count(context.Background(), sdkReq)
+	if cerr != nil {
+		log.Printf("count_tokens: local count failed (%v); using heuristic estimate", cerr)
+		writeCount(w, heuristicCount(sdkReq), "heuristic")
+		return
+	}
+	writeCount(w, total, "local")
+}
+
+func writeCount(w http.ResponseWriter, total int, source string) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("X-Ccgate-Count", "local")
+	w.Header().Set("X-Ccgate-Count", source)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]int{"input_tokens": total})
+}
+
+// heuristicCount is the last-resort estimate used when the local tokenizer is
+// unavailable: roughly one token per 4 characters of text plus per-message and
+// non-text (image/PDF) overhead. Deliberately conservative — it keeps a session
+// functioning, it is not a precise count.
+func heuristicCount(req *sdkRequest) int {
+	chars := 0
+	for _, m := range req.Messages {
+		chars += 8 // per-message structural overhead
+		for _, p := range m.Content {
+			chars += len(p.Text) + len(p.Output) + len(p.Input) + len(p.ToolName)
+		}
+	}
+	for _, t := range req.Tools {
+		chars += len(t.Name) + len(t.Description) + len(t.InputSchema)
+	}
+	return max(chars/4+req.ExtraTokens, 1)
 }
 
 func (s *Service) ensurePool() (*Pool, error) {

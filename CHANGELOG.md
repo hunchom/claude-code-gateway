@@ -9,14 +9,21 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - `systemd` and `launchd` service units in `deploy/`, with the `.p12` password
   kept out of version control (macOS Keychain wrapper; Linux root-only env file).
-- Integration tests for the proxy: routing, transparent passthrough, and
-  count_tokens supported→passthrough with capability learning. Every package is
-  now covered by tests.
+- Integration tests for the proxy and a `FuzzConvertToSDK` fuzz target; every
+  package is now covered by tests.
+- `count_timeout` (`CCGW_COUNT_TIMEOUT`) to bound the upstream count_tokens call.
+- Optional `model_map` to override request-model → ai-tokenizer-key resolution
+  for custom upstream aliases.
+- `doctor` and `setup` now print the client certificate subject and expiry,
+  warning when it is expired or expiring within 14 days.
 
 ### Changed
 - The local count_tokens path now retries transient upstream failures (network
   errors and 5xx except 501) with exponential backoff. The streaming
   `/v1/messages` path is intentionally never retried.
+- count_tokens never hard-fails: when the local tokenizer is unavailable or a
+  count errors, the gateway returns a heuristic estimate (`X-Ccgate-Count:
+  heuristic`) instead of an error.
 
 ## [0.1.0] - 2026-06-24
 

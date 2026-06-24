@@ -90,6 +90,8 @@ claude
 
 The cached answer is rechecked every `recheck_hours` (default 6) and forcibly re-probed on every `ccgate` launch, so a newly-deployed upstream `count_tokens` is picked up automatically.
 
+**Never hard-fails.** Local counts carry an `X-Ccgate-Count: local` response header. If the local tokenizer can't run (for example, Node is unavailable) or a count errors, the gateway returns a conservative heuristic estimate (`X-Ccgate-Count: heuristic`) instead of an error — a session never breaks on token counting.
+
 ### Accuracy
 
 Local counting uses `ai-tokenizer`, which reproduces the model's BPE encoding and adds per-message/-tool structural overhead. The tokenizer is selected **per request** from the request's `model` field, matched against the installed `ai-tokenizer` model table — tolerant of vendor/region prefixes (`us.anthropic.…`), date stamps (`…-20251001`), and Bedrock version suffixes (`…-v1:0`) — and falls back to `tokenizer_model` when the model can't be resolved. It is an excellent estimate for context-window management and auto-compaction triggers, but is not guaranteed to be byte-identical to Anthropic's server-side count. Images are estimated from their decoded dimensions (`width × height / 750`, Anthropic's documented approximation), falling back to the `image_tokens` flat rate when the dimensions can't be read; PDFs use the `pdf_tokens` flat rate. When the upstream supports `count_tokens`, that exact count is used instead.

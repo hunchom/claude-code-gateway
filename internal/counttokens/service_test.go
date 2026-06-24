@@ -1,6 +1,8 @@
 package counttokens
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -124,5 +126,41 @@ func TestStatus(t *testing.T) {
 	}
 	if got.CheckedAt == "" {
 		t.Error("expected checked_at to be set")
+	}
+}
+
+func TestHeuristicCount(t *testing.T) {
+	req := &sdkRequest{
+		Messages:    []sdkMessage{{Role: "user", Content: []sdkPart{{Type: "text", Text: "aaaaaaaa"}}}},
+		ExtraTokens: 5,
+	}
+	if got := heuristicCount(req); got < 5 {
+		t.Errorf("heuristicCount = %d, want >= ExtraTokens (5)", got)
+	}
+	if got := heuristicCount(&sdkRequest{}); got != 1 {
+		t.Errorf("empty request heuristicCount = %d, want floor of 1", got)
+	}
+}
+
+func TestServeLocalHeuristicFallback(t *testing.T) {
+	s := &Service{opts: Options{ImageTokens: 1600, PDFTokens: 3000}}
+	// Force the tokenizer pool to be unavailable without touching Node.
+	s.poolOnce.Do(func() { s.poolErr = errors.New("node unavailable") })
+
+	rec := httptest.NewRecorder()
+	s.serveLocal(rec, []byte(`{"model":"claude-x","messages":[{"role":"user","content":"hello world"}]}`))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (must not hard-fail)", rec.Code)
+	}
+	if got := rec.Header().Get("X-Ccgate-Count"); got != "heuristic" {
+		t.Errorf("X-Ccgate-Count = %q, want heuristic", got)
+	}
+	var out map[string]int
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatal(err)
+	}
+	if out["input_tokens"] < 1 {
+		t.Errorf("input_tokens = %d, want >= 1", out["input_tokens"])
 	}
 }
