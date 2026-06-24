@@ -78,6 +78,24 @@ A robust wrapper around Claude Code that:
       the body is buffered + idempotent. Streaming `/v1/messages` intentionally
       not retried. Tested (retry-to-success + no-retry-on-501).
 
+### Wave 2 (initial roadmap complete — keep perfecting)
+
+- [ ] **Proxy integration tests** — `internal/proxy` has no tests. Spin up an
+      httptest upstream and assert: `/healthz` + `/_ccgate/status`, transparent
+      passthrough (headers/body/streaming), and count_tokens auto-detect
+      (supported→passthrough vs missing→local). Closes the last coverage gap.
+- [ ] **Repo polish for public** — `CHANGELOG.md` (Keep a Changelog), `SECURITY.md`
+      (reporting + the no-secrets posture), `CONTRIBUTING.md` (build/test/PR flow).
+- [ ] **Container image** — Dockerfile (distroless/static) + wire into GoReleaser
+      so tagged releases also publish an image. Node optional layer for local mode.
+- [ ] **Config polish** — expose count_tokens client timeout; add an optional
+      explicit `model_map` (request model → ai-tokenizer key) overriding the
+      sidecar's normalizer for edge cases.
+- [ ] **setup/doctor cert detail** — print leaf subject + `NotAfter` expiry so the
+      operator can see at a glance whether the client cert is valid/expiring.
+- [ ] **Fuzz tests** — `FuzzConvert` (count_tokens request → convert) and
+      `FuzzNormalize` (model id normalizer) to harden against malformed input.
+
 ## How to build / test
 
 ```sh
