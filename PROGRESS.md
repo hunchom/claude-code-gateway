@@ -80,10 +80,10 @@ A robust wrapper around Claude Code that:
 
 ### Wave 2 (initial roadmap complete — keep perfecting)
 
-- [ ] **Proxy integration tests** — `internal/proxy` has no tests. Spin up an
-      httptest upstream and assert: `/healthz` + `/_ccgate/status`, transparent
-      passthrough (headers/body/streaming), and count_tokens auto-detect
-      (supported→passthrough vs missing→local). Closes the last coverage gap.
+- [x] **Proxy integration tests** — `internal/proxy` covered: `/healthz`,
+      `/_ccgate/status`, transparent passthrough (path/query/method/body/headers),
+      and count_tokens supported→passthrough with capability learning. Every
+      package now has tests. (missing→local needs Node; in the smoke test.)
 - [ ] **Repo polish for public** — `CHANGELOG.md` (Keep a Changelog), `SECURITY.md`
       (reporting + the no-secrets posture), `CONTRIBUTING.md` (build/test/PR flow).
 - [ ] **Container image** — Dockerfile (distroless/static) + wire into GoReleaser
