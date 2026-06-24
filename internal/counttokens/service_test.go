@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -155,6 +156,23 @@ func TestServiceConcurrentAccess(t *testing.T) {
 		}(i)
 	}
 	wg.Wait()
+}
+
+func TestHandleBadJSON(t *testing.T) {
+	s := &Service{opts: Options{Mode: config.CountLocal}}
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/v1/messages/count_tokens", strings.NewReader("not json"))
+	s.Handle(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("response not JSON: %v", err)
+	}
+	if out["type"] != "error" {
+		t.Errorf("error shape mismatch: %s", rec.Body.String())
+	}
 }
 
 func TestHeuristicCount(t *testing.T) {
