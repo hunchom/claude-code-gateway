@@ -1,6 +1,9 @@
 package counttokens
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -63,6 +66,52 @@ func TestClassify(t *testing.T) {
 		if got := Classify(c.status, []byte(c.body)); got != c.want {
 			t.Errorf("Classify(%d, %q) = %v, want %v", c.status, c.body, got, c.want)
 		}
+	}
+}
+
+func TestDoUpstreamRetries(t *testing.T) {
+	var calls int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&calls, 1) < 3 {
+			w.WriteHeader(http.StatusServiceUnavailable) // transient
+			return
+		}
+		_, _ = w.Write([]byte(`{"input_tokens":7}`))
+	}))
+	defer srv.Close()
+
+	s := &Service{upstream: srv.URL, client: srv.Client()}
+	r := httptest.NewRequest(http.MethodPost, "/v1/messages/count_tokens", nil)
+	resp, err := s.doUpstream(r, []byte(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("status = %d after retries, want 200", resp.StatusCode)
+	}
+	if got := atomic.LoadInt32(&calls); got != 3 {
+		t.Errorf("upstream calls = %d, want 3 (2 retries)", got)
+	}
+}
+
+func TestDoUpstreamNoRetryOn501(t *testing.T) {
+	var calls int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&calls, 1)
+		w.WriteHeader(http.StatusNotImplemented) // definitive: unsupported
+	}))
+	defer srv.Close()
+
+	s := &Service{upstream: srv.URL, client: srv.Client()}
+	r := httptest.NewRequest(http.MethodPost, "/v1/messages/count_tokens", nil)
+	resp, err := s.doUpstream(r, []byte(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if got := atomic.LoadInt32(&calls); got != 1 {
+		t.Errorf("upstream calls = %d, want 1 (501 must not retry)", got)
 	}
 }
 

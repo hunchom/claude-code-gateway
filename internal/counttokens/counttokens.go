@@ -268,7 +268,7 @@ func Classify(status int, body []byte) state.Capability {
 	}
 }
 
-func (s *Service) doUpstream(r *http.Request, body []byte) (*http.Response, error) {
+func (s *Service) newUpstreamRequest(r *http.Request, body []byte) (*http.Request, error) {
 	u := s.upstream + r.URL.Path
 	if r.URL.RawQuery != "" {
 		u += "?" + r.URL.RawQuery
@@ -280,7 +280,42 @@ func (s *Service) doUpstream(r *http.Request, body []byte) (*http.Response, erro
 	copyHeader(req.Header, r.Header)
 	req.Header.Del("Accept-Encoding") // we buffer this small response; avoid compressed body
 	req.ContentLength = int64(len(body))
-	return s.client.Do(req)
+	return req, nil
+}
+
+// doUpstream forwards the buffered count_tokens request, retrying transient
+// failures (network errors and 5xx except 501) with small exponential backoff.
+// Safe to retry because the body is fully buffered and count_tokens is
+// idempotent. 501 is never retried — it is a definitive "unsupported" signal.
+func (s *Service) doUpstream(r *http.Request, body []byte) (*http.Response, error) {
+	const attempts = 3
+	var lastErr error
+	for i := range attempts {
+		if i > 0 {
+			select {
+			case <-r.Context().Done():
+				return nil, r.Context().Err()
+			case <-time.After(time.Duration(50<<i) * time.Millisecond):
+			}
+		}
+		req, err := s.newUpstreamRequest(r, body)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := s.client.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		if resp.StatusCode >= 500 && resp.StatusCode != http.StatusNotImplemented && i < attempts-1 {
+			_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<16))
+			_ = resp.Body.Close()
+			lastErr = fmt.Errorf("upstream returned %d", resp.StatusCode)
+			continue
+		}
+		return resp, nil
+	}
+	return nil, lastErr
 }
 
 func (s *Service) serveLocal(w http.ResponseWriter, body []byte) {

@@ -73,8 +73,10 @@ A robust wrapper around Claude Code that:
 - [x] **Service units** — hardened `systemd` unit (DynamicUser, StateDirectory,
       root-only env file) + `launchd` agent (Keychain password wrapper) in
       `deploy/`, with a deploy guide. plist + wrapper validated.
-- [ ] **Passthrough resilience** — short retry/backoff on transient upstream
-      errors before failing a `count_tokens` forward.
+- [x] **Passthrough resilience** — count_tokens forward/probe retries transient
+      failures (network + 5xx except 501) with exponential backoff; safe because
+      the body is buffered + idempotent. Streaming `/v1/messages` intentionally
+      not retried. Tested (retry-to-success + no-retry-on-501).
 
 ## How to build / test
 
