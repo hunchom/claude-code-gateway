@@ -1,0 +1,33 @@
+# Secrets and certificate material — never commit
+*.p12
+*.pfx
+*.pem
+*.key
+*.crt
+*.cer
+user-cert.pem
+user-key.pem
+config.local.yaml
+config.yaml
+*.local
+*.secrets
+.env
+.env.*
+
+# Build output
+/ccgate
+/dist/
+*.exe
+
+# Tokenizer sidecar install (created at runtime)
+/internal/tokenizer/node_modules/
+node_modules/
+
+# Editor / OS noise
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Keep the embedded CA directory but ignore any real certs dropped into it
+!certs/ca/README.md

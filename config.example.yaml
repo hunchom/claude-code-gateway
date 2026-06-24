@@ -1,0 +1,37 @@
+# ccgate configuration example.
+#
+# Copy to config.yaml (or pass --config) and edit. Every key can also be set via
+# a CCGW_* environment variable, which takes precedence. The .p12 password must
+# come from the environment (CCGW_P12_PASSWORD); it is never read from this file.
+
+# Local address Claude Code connects to.
+listen: 127.0.0.1:8787
+
+# Anthropic-compatible endpoint to forward to (LiteLLM, Bedrock gateway, etc.).
+upstream: https://litellm.internal.example.com
+
+# ai-tokenizer model key used for LOCAL token counting (see the ai-tokenizer
+# model table). Keep this in the same tokenizer family as the model you use.
+tokenizer_model: anthropic/claude-sonnet-4.5
+
+# --- Mutual TLS -------------------------------------------------------------
+# Path to the password-protected client certificate bundle. The password is
+# supplied at runtime via CCGW_P12_PASSWORD.
+p12_path: /path/to/client.p12
+
+# Optional extra CA bundle (PEM). The CA(s) embedded under certs/ca/ at build
+# time always apply in addition to this and the system trust store.
+# ca_bundle: /path/to/internal-ca.pem
+
+# --- count_tokens behaviour -------------------------------------------------
+# auto         detect upstream support, cache the result, recheck periodically
+# local        always count locally with ai-tokenizer
+# passthrough  always forward to the upstream
+count_tokens: auto
+recheck_hours: 6
+
+# --- Local tokenizer tuning -------------------------------------------------
+tokenizer_pool: 4      # number of parallel Node worker processes
+image_tokens: 1600     # flat token estimate per image block
+pdf_tokens: 3000       # flat token estimate per PDF document block
+# node_bin: node       # override the node executable if not on PATH
