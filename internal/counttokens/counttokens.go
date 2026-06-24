@@ -102,10 +102,28 @@ type Status struct {
 	Upstream            string `json:"upstream"`
 	CountTokensUpstream string `json:"count_tokens_upstream"`
 	CheckedAt           string `json:"checked_at,omitempty"`
+	TokenizerModel      string `json:"tokenizer_model"`
+	Node                string `json:"node"`            // available | missing
+	LocalTokenizer      string `json:"local_tokenizer"` // not-started | ready | error
 }
 
 // Status returns the current service state for /_ccgate/status.
 func (s *Service) Status() Status {
+	node := "available"
+	bin := s.opts.NodeBin
+	if bin == "" {
+		bin = "node"
+	}
+	if _, err := exec.LookPath(bin); err != nil {
+		node = "missing"
+	}
+	local := "not-started"
+	if s.poolErr != nil {
+		local = "error"
+	} else if s.pool != nil {
+		local = "ready"
+	}
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	checked := ""
@@ -117,6 +135,9 @@ func (s *Service) Status() Status {
 		Upstream:            s.upstream,
 		CountTokensUpstream: string(s.st.CountTokens),
 		CheckedAt:           checked,
+		TokenizerModel:      s.opts.TokenizerModel,
+		Node:                node,
+		LocalTokenizer:      local,
 	}
 }
 

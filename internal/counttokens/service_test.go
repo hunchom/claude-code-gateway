@@ -127,6 +127,9 @@ func TestStatus(t *testing.T) {
 	if got.CheckedAt == "" {
 		t.Error("expected checked_at to be set")
 	}
+	if got.LocalTokenizer != "not-started" {
+		t.Errorf("local_tokenizer = %q, want not-started for a fresh service", got.LocalTokenizer)
+	}
 }
 
 func TestHeuristicCount(t *testing.T) {

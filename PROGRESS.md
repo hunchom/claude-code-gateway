@@ -108,8 +108,8 @@ A robust wrapper around Claude Code that:
 - [ ] **Calibration** — `ccgate calib --model M` compares local counts against an
       upstream that implements count_tokens (e.g. api.anthropic.com) over sample
       payloads and reports mean/max % error, so the operator can trust the estimate.
-- [ ] **Richer status** — add tokenizer pool readiness + Node presence to
-      `/_ccgate/status` and `doctor`.
+- [x] **Richer status** — `/_ccgate/status` now reports tokenizer model, Node
+      availability, and local-tokenizer readiness (not-started/ready/error).
 - [ ] **Container image** — still deferred; see note above.
 
 ## How to build / test

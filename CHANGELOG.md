@@ -16,6 +16,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   for custom upstream aliases.
 - `doctor` and `setup` now print the client certificate subject and expiry,
   warning when it is expired or expiring within 14 days.
+- `/_ccgate/status` now reports the tokenizer model, Node availability, and
+  local-tokenizer readiness.
 
 ### Changed
 - The local count_tokens path now retries transient upstream failures (network
