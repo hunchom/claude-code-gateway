@@ -75,7 +75,8 @@ func New(cfg *config.Config, tlsCfg *tls.Config) (*Gateway, error) {
 		PoolSize:       cfg.PoolSize,
 		ImageTokens:    cfg.ImageTokens,
 		PDFTokens:      cfg.PDFTokens,
-	}, &http.Client{Transport: transport, Timeout: 30 * time.Second})
+		ModelMap:       cfg.ModelMap,
+	}, &http.Client{Transport: transport, Timeout: time.Duration(cfg.CountTimeout) * time.Second})
 
 	return &Gateway{cfg: cfg, rp: rp, ct: ct}, nil
 }

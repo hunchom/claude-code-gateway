@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"embed"
 	"flag"
 	"fmt"
@@ -247,6 +248,26 @@ func cmdSetup(args []string) {
 		fatal("%v", err)
 	}
 	fmt.Printf("Wrote %s and %s\n", certOut, keyOut)
+	if cert, err := mtls.LoadClientCertificate(p12, password); err == nil {
+		printCertInfo(cert.Leaf)
+	}
+}
+
+// printCertInfo prints the certificate subject and expiry, warning when the
+// certificate is expired or expiring soon.
+func printCertInfo(leaf *x509.Certificate) {
+	if leaf == nil {
+		return
+	}
+	days := int(time.Until(leaf.NotAfter).Hours() / 24)
+	fmt.Printf("  subject:       %s\n", leaf.Subject.CommonName)
+	fmt.Printf("  not after:     %s (%d days)\n", leaf.NotAfter.UTC().Format(time.RFC3339), days)
+	switch {
+	case days < 0:
+		fmt.Println("  WARNING:       client certificate has EXPIRED")
+	case days < 14:
+		fmt.Printf("  WARNING:       client certificate expires in %d days\n", days)
+	}
 }
 
 // cmdDoctor reports on configuration, certificate material, and connectivity.
@@ -278,10 +299,11 @@ func cmdDoctor(args []string) {
 
 	if cfg.P12Path == "" {
 		fmt.Println("client cert:     none configured (no mTLS)")
-	} else if _, err := mtls.LoadClientCertificate(cfg.P12Path, cfg.P12Password); err != nil {
+	} else if cert, err := mtls.LoadClientCertificate(cfg.P12Path, cfg.P12Password); err != nil {
 		fmt.Printf("client cert:     ERROR %v\n", err)
 	} else {
 		fmt.Printf("client cert:     OK (%s)\n", cfg.P12Path)
+		printCertInfo(cert.Leaf)
 	}
 
 	if _, err := exec.LookPath("node"); err != nil {

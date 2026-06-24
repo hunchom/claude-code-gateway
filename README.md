@@ -110,6 +110,8 @@ Resolved in increasing precedence: **defaults → YAML file (`--config`) → `CC
 | `recheck_hours` | `CCGW_RECHECK_HOURS` | `6` | Capability recheck cadence |
 | `tokenizer_pool` | `CCGW_TOKENIZER_POOL` | `4` | Node worker count |
 | `image_tokens` | `CCGW_IMAGE_TOKENS` | `1600` | Fallback per-image estimate when dimensions can't be decoded |
+| `count_timeout` | `CCGW_COUNT_TIMEOUT` | `30` | Upstream `count_tokens` request timeout (seconds) |
+| `model_map` | — | — | Explicit request-model → ai-tokenizer-key overrides (YAML only) |
 | `pdf_tokens` | `CCGW_PDF_TOKENS` | `3000` | Flat estimate per PDF block |
 
 See [`config.example.yaml`](./config.example.yaml).

@@ -42,6 +42,9 @@ type Config struct {
 	PoolSize     int    `yaml:"tokenizer_pool"` // node tokenizer worker count
 	NodeBin      string `yaml:"node_bin"`       // node executable (default: node on PATH)
 
+	CountTimeout int               `yaml:"count_timeout"` // upstream count_tokens timeout (seconds)
+	ModelMap     map[string]string `yaml:"model_map"`     // explicit request model -> ai-tokenizer key overrides
+
 	// Resolved at runtime; never read from YAML.
 	ConfigDir  string `yaml:"-"`
 	StateDir   string `yaml:"-"`
@@ -61,6 +64,7 @@ func Default() *Config {
 		PDFTokens:      3000,
 		PoolSize:       4,
 		NodeBin:        "node",
+		CountTimeout:   30,
 		ConfigDir:      dir,
 		StateDir:       dir,
 		SidecarDir:     filepath.Join(dir, "tokenizer"),
@@ -103,6 +107,7 @@ func (c *Config) applyEnv() {
 	setInt(&c.ImageTokens, "CCGW_IMAGE_TOKENS")
 	setInt(&c.PDFTokens, "CCGW_PDF_TOKENS")
 	setInt(&c.PoolSize, "CCGW_TOKENIZER_POOL")
+	setInt(&c.CountTimeout, "CCGW_COUNT_TIMEOUT")
 }
 
 func (c *Config) resolvePaths() {
@@ -139,6 +144,9 @@ func (c *Config) Validate() error {
 	}
 	if c.PoolSize <= 0 {
 		c.PoolSize = 1
+	}
+	if c.CountTimeout <= 0 {
+		c.CountTimeout = 30
 	}
 	return nil
 }

@@ -31,6 +31,20 @@ func TestEnvOverride(t *testing.T) {
 	}
 }
 
+func TestCountTimeout(t *testing.T) {
+	if Default().CountTimeout != 30 {
+		t.Errorf("default count_timeout = %d, want 30", Default().CountTimeout)
+	}
+	t.Setenv("CCGW_COUNT_TIMEOUT", "12")
+	c, err := Load(os.DevNull)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.CountTimeout != 12 {
+		t.Errorf("env count_timeout = %d, want 12", c.CountTimeout)
+	}
+}
+
 func TestValidateRejectsBadUpstream(t *testing.T) {
 	c := Default()
 	c.Upstream = "ftp://nope"

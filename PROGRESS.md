@@ -89,11 +89,13 @@ A robust wrapper around Claude Code that:
       (build/test/PR flow), linked from README.
 - [ ] **Container image** — Dockerfile (distroless/static) + wire into GoReleaser
       so tagged releases also publish an image. Node optional layer for local mode.
-- [ ] **Config polish** — expose count_tokens client timeout; add an optional
-      explicit `model_map` (request model → ai-tokenizer key) overriding the
-      sidecar's normalizer for edge cases.
-- [ ] **setup/doctor cert detail** — print leaf subject + `NotAfter` expiry so the
-      operator can see at a glance whether the client cert is valid/expiring.
+      (Deferred: least aligned with the local-launcher use; needs node-in-image for
+      local counting + multi-arch CI that can't be validated on this box. Do last.)
+- [x] **Config polish** — `count_timeout` (CCGW_COUNT_TIMEOUT) drives the upstream
+      count_tokens client; optional `model_map` (YAML) overrides request-model →
+      ai-tokenizer-key for custom LiteLLM aliases. Tested.
+- [x] **setup/doctor cert detail** — `doctor` and `setup` print the client cert
+      subject + NotAfter, warning when expired or expiring within 14 days.
 - [ ] **Fuzz tests** — `FuzzConvert` (count_tokens request → convert) and
       `FuzzNormalize` (model id normalizer) to harden against malformed input.
 

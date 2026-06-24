@@ -35,3 +35,13 @@ tokenizer_pool: 4      # number of parallel Node worker processes
 image_tokens: 1600     # fallback per-image estimate (used when image dimensions can't be decoded)
 pdf_tokens: 3000       # flat token estimate per PDF document block
 # node_bin: node       # override the node executable if not on PATH
+
+# Upstream count_tokens request timeout, in seconds.
+count_timeout: 30
+
+# Explicit request-model -> ai-tokenizer-key overrides. Use this for custom
+# LiteLLM aliases the automatic normalizer can't resolve (anything without
+# "claude" in the name). Optional.
+# model_map:
+#   my-sonnet-alias: anthropic/claude-sonnet-4.5
+#   my-haiku-alias: anthropic/claude-haiku-4.5

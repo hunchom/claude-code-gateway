@@ -42,6 +42,7 @@ type Options struct {
 	PoolSize       int
 	ImageTokens    int
 	PDFTokens      int
+	ModelMap       map[string]string
 }
 
 // IsCountTokensPath reports whether p is one of the count_tokens routes Claude
@@ -362,6 +363,7 @@ func (s *Service) countConfig() *CountConfig {
 		PoolSize:   s.opts.PoolSize,
 		ImageTok:   s.opts.ImageTokens,
 		PDFTok:     s.opts.PDFTokens,
+		ModelMap:   s.opts.ModelMap,
 	}
 }
 
@@ -428,6 +430,7 @@ type CountConfig struct {
 	PoolSize   int
 	ImageTok   int
 	PDFTok     int
+	ModelMap   map[string]string
 }
 
 // worker is one Node process speaking NDJSON, guarded by its own mutex so a

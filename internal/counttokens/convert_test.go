@@ -109,6 +109,36 @@ func TestImageTokensFallback(t *testing.T) {
 	}
 }
 
+func TestModelMapOverride(t *testing.T) {
+	cfg := testCfg()
+	cfg.ModelMap = map[string]string{"my-litellm-alias": "anthropic/claude-sonnet-4.5"}
+	req := &anthropicCountRequest{
+		Model:    "my-litellm-alias",
+		Messages: []anthropicMessage{{Role: "user", Content: json.RawMessage(`"hi"`)}},
+	}
+	out, err := convertToSDK(req, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Model != "anthropic/claude-sonnet-4.5" {
+		t.Errorf("model = %q, want mapped ai-tokenizer key", out.Model)
+	}
+}
+
+func TestModelMapPassthrough(t *testing.T) {
+	req := &anthropicCountRequest{
+		Model:    "claude-x",
+		Messages: []anthropicMessage{{Role: "user", Content: json.RawMessage(`"hi"`)}},
+	}
+	out, err := convertToSDK(req, testCfg())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Model != "claude-x" {
+		t.Errorf("model = %q, want unchanged when no map entry", out.Model)
+	}
+}
+
 func TestConvertToolResult(t *testing.T) {
 	content := `[{"type":"tool_result","content":[{"type":"text","text":"line1"},{"type":"text","text":"line2"}]}]`
 	req := &anthropicCountRequest{Messages: []anthropicMessage{{Role: "user", Content: json.RawMessage(content)}}}
