@@ -17,7 +17,11 @@ A robust wrapper around Claude Code that:
 7. Stays robust across Claude Code upgrades (don't break the LiteLLM connection).
 8. Published on a public GitHub profile.
 
-## Status: MVP complete, building, smoke-tested, published
+## Status: feature-complete (Wave 1–3 done) + v0.1.0 released
+
+Every original requirement plus three enhancement waves are shipped and tested.
+The container image is intentionally deferred as optional (see decision below).
+Building, smoke-tested, published.
 
 - `go build ./...` ✅  `go vet ./...` ✅  `gofmt -l` clean ✅  `go test ./...` ✅
 - Unit tests: config precedence/validation, state round-trip, counttokens
@@ -110,7 +114,15 @@ A robust wrapper around Claude Code that:
       per-sample + mean/max % error. Tested (upstreamCount + sample validity).
 - [x] **Richer status** — `/_ccgate/status` now reports tokenizer model, Node
       availability, and local-tokenizer readiness (not-started/ready/error).
-- [ ] **Container image** — still deferred; see note above.
+- [~] **Container image** — DEFERRED (optional, decision recorded). `ccgate` is
+      primarily a local launcher (`ccgate claude`); a container only helps the
+      `run` daemon mode, needs node-in-image for local counting, and a multi-arch
+      release pipeline that can't be validated on this machine (Docker daemon down).
+      Low value-to-risk for this tool. Do only if explicitly requested.
+
+> The roadmap is complete. Remaining fires should make only genuinely valuable,
+> verifiable improvements — do not pad. If nothing substantive remains, keep the
+> tree green and report "no-op" rather than inventing busywork.
 
 ## How to build / test
 
