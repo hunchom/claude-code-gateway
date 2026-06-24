@@ -148,6 +148,23 @@ Verified against Claude Code 2.1.187's actual request surface:
 - The client marks token counting `count_tokens_unreachable` on failure; the
   gateway's heuristic fallback always returns a count, so that never triggers.
 
+## Docker
+
+A container image is published to the GitHub Container Registry on each release,
+with the local tokenizer pre-installed (no runtime npm needed):
+
+```sh
+docker run --rm -p 8787:8787 \
+  -e CCGW_UPSTREAM=https://litellm.internal.example.com \
+  -e CCGW_P12_PATH=/certs/client.p12 -e CCGW_P12_PASSWORD="$CCGW_P12_PASSWORD" \
+  -v "$PWD/certs:/certs:ro" \
+  ghcr.io/hunchom/claude-code-gateway:latest
+```
+
+Then point Claude Code at it with `ANTHROPIC_BASE_URL=http://127.0.0.1:8787`. Build
+the image yourself with `docker build -t ccgate .`, or use the Compose example in
+[deploy/docker-compose.yml](./deploy/docker-compose.yml).
+
 ## Running as a service
 
 Example `systemd` and `launchd` units (with secrets kept out of version control —

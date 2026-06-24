@@ -760,20 +760,25 @@ func (p *Pool) Close() {
 	}
 }
 
-func ensureSidecar(cfg *CountConfig) error {
-	if err := writeSidecarFiles(cfg.SidecarDir); err != nil {
+func ensureSidecar(cfg *CountConfig) error { return InstallSidecar(cfg.SidecarDir) }
+
+// InstallSidecar writes the tokenizer sidecar files into dir and installs its npm
+// dependency (ai-tokenizer) if not already present. Safe to call repeatedly;
+// exposed so it can be run ahead of time for offline or container pre-warming.
+func InstallSidecar(dir string) error {
+	if err := writeSidecarFiles(dir); err != nil {
 		return fmt.Errorf("write sidecar: %w", err)
 	}
-	if _, err := os.Stat(filepath.Join(cfg.SidecarDir, "node_modules", "ai-tokenizer")); err == nil {
+	if _, err := os.Stat(filepath.Join(dir, "node_modules", "ai-tokenizer")); err == nil {
 		return nil
 	}
 	npm, err := exec.LookPath("npm")
 	if err != nil {
 		return fmt.Errorf("npm not found on PATH (needed to install ai-tokenizer): %w", err)
 	}
-	log.Printf("count_tokens: installing ai-tokenizer in %s ...", cfg.SidecarDir)
+	log.Printf("count_tokens: installing ai-tokenizer in %s ...", dir)
 	cmd := exec.Command(npm, "install", "--silent", "--no-audit", "--no-fund")
-	cmd.Dir = cfg.SidecarDir
+	cmd.Dir = dir
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {

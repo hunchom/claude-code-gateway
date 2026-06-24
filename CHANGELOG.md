@@ -6,6 +6,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-24
+
 ### Added
 - `systemd` and `launchd` service units in `deploy/`, with the `.p12` password
   kept out of version control (macOS Keychain wrapper; Linux root-only env file).
@@ -42,6 +44,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - End-to-end mutual-TLS test proving ccgate authenticates to a client-certificate-
   requiring upstream using the configured cert (self-contained; no external tools).
 - Dependabot config (Go modules + GitHub Actions, weekly) to keep dependencies current.
+- Multi-arch Docker image (linux/amd64+arm64) with the local tokenizer
+  pre-installed, published to GHCR on each release; `Dockerfile` and a
+  `deploy/docker-compose.yml` example.
+- `ccgate setup-tokenizer` to pre-install the local tokenizer for offline or
+  container use.
 
 ## [0.1.0] - 2026-06-24
 
@@ -65,5 +72,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Cross-platform release tooling (GoReleaser) producing linux/darwin/windows
   binaries on amd64 and arm64.
 
-[Unreleased]: https://github.com/hunchom/claude-code-gateway/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/hunchom/claude-code-gateway/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/hunchom/claude-code-gateway/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/hunchom/claude-code-gateway/releases/tag/v0.1.0

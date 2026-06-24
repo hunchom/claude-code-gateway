@@ -114,11 +114,10 @@ Building, smoke-tested, published.
       per-sample + mean/max % error. Tested (upstreamCount + sample validity).
 - [x] **Richer status** — `/_ccgate/status` now reports tokenizer model, Node
       availability, and local-tokenizer readiness (not-started/ready/error).
-- [~] **Container image** — DEFERRED (optional, decision recorded). `ccgate` is
-      primarily a local launcher (`ccgate claude`); a container only helps the
-      `run` daemon mode, needs node-in-image for local counting, and a multi-arch
-      release pipeline that can't be validated on this machine (Docker daemon down).
-      Low value-to-risk for this tool. Do only if explicitly requested.
+- [x] **Container image** — DONE. Multi-stage Dockerfile (Node runtime, tokenizer
+      pre-baked via `setup-tokenizer`), validated locally (built + ran + counted
+      with no runtime npm). Multi-arch GHCR publish wired into the release workflow;
+      `deploy/docker-compose.yml` example.
 
 > The roadmap is complete. Remaining fires should make only genuinely valuable,
 > verifiable improvements — do not pad. If nothing substantive remains, keep the

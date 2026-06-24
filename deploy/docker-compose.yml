@@ -1,0 +1,21 @@
+services:
+  ccgate:
+    image: ghcr.io/hunchom/claude-code-gateway:latest
+    # To build locally instead of pulling, comment out `image:` above and use:
+    # build:
+    #   context: ..
+    ports:
+      - "8787:8787"
+    environment:
+      CCGW_UPSTREAM: https://litellm.internal.example.com
+      CCGW_P12_PATH: /certs/client.p12
+      # Provide the password via your shell or a .env file (never commit it):
+      CCGW_P12_PASSWORD: ${CCGW_P12_PASSWORD:?set CCGW_P12_PASSWORD in your shell or .env}
+      CCGW_COUNT_TOKENS: auto
+    volumes:
+      - ./certs:/certs:ro      # mount the directory holding client.p12
+      - ccgate-data:/data      # persists learned state + tokenizer
+    restart: unless-stopped
+
+volumes:
+  ccgate-data:

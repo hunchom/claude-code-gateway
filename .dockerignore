@@ -1,0 +1,17 @@
+.git/
+dist/
+/ccgate
+*.exe
+# Secrets / certificate material — never enter the build context
+*.pem
+*.p12
+*.pfx
+*.key
+*.crt
+# Runtime tokenizer install
+node_modules/
+internal/tokenizer/node_modules/
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/

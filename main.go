@@ -57,6 +57,8 @@ func main() {
 		cmdDoctor(args)
 	case "calib":
 		cmdCalib(args)
+	case "setup-tokenizer":
+		cmdSetupTokenizer(args)
 	case "version", "-v", "--version":
 		fmt.Println("ccgate", version)
 	case "help", "-h", "--help":
@@ -77,6 +79,7 @@ Usage:
   ccgate setup               Extract user-cert.pem / user-key.pem from a .p12
   ccgate doctor              Diagnose configuration and connectivity
   ccgate calib --model M     Measure local token-count accuracy vs the upstream
+  ccgate setup-tokenizer     Pre-install the local tokenizer (offline/container warmup)
   ccgate version             Print version
 
 Configuration is read from (lowest to highest precedence):
@@ -300,6 +303,16 @@ func cmdSetup(args []string) {
 	if cert, err := mtls.LoadClientCertificate(p12, password); err == nil {
 		printCertInfo(cert.Leaf)
 	}
+}
+
+// cmdSetupTokenizer pre-installs the local tokenizer (writes the sidecar and runs
+// npm install) so the first count is fast and works offline / in containers.
+func cmdSetupTokenizer(args []string) {
+	cfg, _ := mustConfig(args, "setup-tokenizer")
+	if err := counttokens.InstallSidecar(cfg.SidecarDir); err != nil {
+		fatal("%v", err)
+	}
+	fmt.Printf("Tokenizer ready in %s\n", cfg.SidecarDir)
 }
 
 // printCertInfo prints the certificate subject and expiry, warning when the
