@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hunchom/claude-code-gateway/internal/config"
 )
@@ -81,6 +82,62 @@ func TestGatewayPassthrough(t *testing.T) {
 	}
 	if resp.StatusCode != http.StatusMultiStatus || string(b) != "upstream-body" || resp.Header.Get("X-Up") != "1" {
 		t.Errorf("client got status=%d body=%q x-up=%q", resp.StatusCode, b, resp.Header.Get("X-Up"))
+	}
+}
+
+// TestGatewayStreaming proves responses are streamed (flushed per write) rather
+// than buffered: the client must receive the first chunk while the upstream is
+// still blocked from sending the second.
+func TestGatewayStreaming(t *testing.T) {
+	release := make(chan struct{})
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fl, ok := w.(http.Flusher)
+		if !ok {
+			t.Error("upstream ResponseWriter is not a Flusher")
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, "event: a\n\n")
+		fl.Flush()
+		<-release // hold the second chunk until the client has read the first
+		_, _ = io.WriteString(w, "event: b\n\n")
+		fl.Flush()
+	}))
+	defer up.Close()
+	srv := httptest.NewServer(newTestGateway(t, up.URL))
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/v1/messages")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	buf := make([]byte, 64)
+	type readResult struct {
+		n   int
+		err error
+	}
+	ch := make(chan readResult, 1)
+	go func() {
+		n, err := resp.Body.Read(buf)
+		ch <- readResult{n, err}
+	}()
+	select {
+	case r := <-ch:
+		close(release)
+		if r.n == 0 || !strings.Contains(string(buf[:r.n]), "event: a") {
+			t.Fatalf("first chunk not streamed: n=%d err=%v got=%q", r.n, r.err, buf[:r.n])
+		}
+	case <-time.After(3 * time.Second):
+		close(release)
+		t.Fatal("first chunk not received within 3s — response is being buffered, not streamed")
+	}
+
+	rest, _ := io.ReadAll(resp.Body)
+	if !strings.Contains(string(rest), "event: b") {
+		t.Errorf("second chunk missing from stream: %q", rest)
 	}
 }
 
