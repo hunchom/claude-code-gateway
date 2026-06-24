@@ -78,7 +78,9 @@ type sdkTool struct {
 // request shape, accumulating flat token estimates for non-text blocks (images,
 // PDFs) that the text tokenizer cannot see.
 func convertToSDK(req *anthropicCountRequest, cfg *CountConfig) (*sdkRequest, error) {
-	out := &sdkRequest{Model: cfg.Model}
+	// Carry the request's model so the sidecar can pick the matching tokenizer;
+	// it falls back to the configured default when the model is empty/unknown.
+	out := &sdkRequest{Model: req.Model}
 	if len(req.System) > 0 {
 		parts, extra, err := normalizeContent(req.System, cfg)
 		if err != nil {

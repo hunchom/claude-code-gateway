@@ -25,6 +25,7 @@ A robust wrapper around Claude Code that:
   proving the PKCS#8 extraction is a valid keypair).
 - Local `count_tokens` smoke test ✅ → `{"input_tokens":19}` via the Node pool.
 - mtls: replaced deprecated `pkcs12.ToPEM` with `DecodeChain` + PKCS#8 PEM (correct output).
+- Per-request tokenizer model resolution (sidecar, data-driven against installed table).
 - Published: https://github.com/hunchom/claude-code-gateway
 
 ## Architecture
@@ -55,9 +56,10 @@ A robust wrapper around Claude Code that:
 
 - [x] **Unit tests** — config, state, counttokens (convert + decide + path), mtls
       (p12 round-trip). CI runs `go test ./...`.
-- [ ] **Model→tokenizer-key mapping** — map the request's `model` to the right
-      ai-tokenizer key (fall back to `tokenizer_model`) so mixed-model sessions
-      count correctly. Beware Fable-class new tokenizers (~30% more tokens).
+- [x] **Model→tokenizer-key mapping** — per-request resolution in the sidecar
+      against the installed ai-tokenizer table (tolerant of vendor/region
+      prefixes, date stamps, bedrock `-v1:0` suffixes); falls back to
+      `tokenizer_model`. Smoke-tested across 6 id shapes.
 - [ ] **`/healthz` + `/_ccgate/status`** — liveness and a JSON status (mode,
       learned capability, checked_at) without touching Anthropic routes.
 - [ ] **Live `doctor` probe** — actually call upstream `count_tokens` and report

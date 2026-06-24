@@ -84,7 +84,7 @@ The cached answer is rechecked every `recheck_hours` (default 6) and forcibly re
 
 ### Accuracy
 
-Local counting uses `ai-tokenizer`, which reproduces the model's BPE encoding and adds per-message/-tool structural overhead. It is an excellent estimate for context-window management and auto-compaction triggers, but is not guaranteed to be byte-identical to Anthropic's server-side count. Non-text blocks (images, PDFs) are estimated with the configurable `image_tokens` / `pdf_tokens` flat rates. When the upstream supports `count_tokens`, that exact count is used instead.
+Local counting uses `ai-tokenizer`, which reproduces the model's BPE encoding and adds per-message/-tool structural overhead. The tokenizer is selected **per request** from the request's `model` field, matched against the installed `ai-tokenizer` model table — tolerant of vendor/region prefixes (`us.anthropic.…`), date stamps (`…-20251001`), and Bedrock version suffixes (`…-v1:0`) — and falls back to `tokenizer_model` when the model can't be resolved. It is an excellent estimate for context-window management and auto-compaction triggers, but is not guaranteed to be byte-identical to Anthropic's server-side count. Non-text blocks (images, PDFs) are estimated with the configurable `image_tokens` / `pdf_tokens` flat rates. When the upstream supports `count_tokens`, that exact count is used instead.
 
 ## Configuration
 
@@ -94,7 +94,7 @@ Resolved in increasing precedence: **defaults → YAML file (`--config`) → `CC
 | --- | --- | --- | --- |
 | `listen` | `CCGW_LISTEN` | `127.0.0.1:8787` | Local address Claude Code connects to |
 | `upstream` | `CCGW_UPSTREAM` | `https://api.anthropic.com` | Endpoint to forward to |
-| `tokenizer_model` | `CCGW_TOKENIZER_MODEL` | `anthropic/claude-sonnet-4.5` | `ai-tokenizer` model key for local counting |
+| `tokenizer_model` | `CCGW_TOKENIZER_MODEL` | `anthropic/claude-sonnet-4.5` | Fallback `ai-tokenizer` key when a request's model can't be resolved |
 | `p12_path` | `CCGW_P12_PATH` | — | Client certificate bundle |
 | `p12_password` | `CCGW_P12_PASSWORD` | — | `.p12` password (**env only**, never serialized) |
 | `ca_bundle` | `CCGW_CA_BUNDLE` | — | Extra CA PEM file (added to the embedded bundle) |
